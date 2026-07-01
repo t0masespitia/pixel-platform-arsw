@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Canvas WebSocket Test Client</title>
+  <style>
+    body { font-family: monospace; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #1a1a1a; color: #e0e0e0; }
+    h1 { color: #90caf9; font-size: 1.2rem; }
+    #status { padding: 6px 12px; border-radius: 4px; display: inline-block; font-weight: bold; margin-bottom: 16px; }
+    #status.connected { background: #1b5e20; color: #a5d6a7; }
+    #status.disconnected { background: #b71c1c; color: #ef9a9a; }
+    form { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+    label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: #bdbdbd; }
+    input[type=number] { width: 70px; padding: 6px; background: #2d2d2d; border: 1px solid #555; color: #e0e0e0; border-radius: 4px; }
+    input[type=color] { width: 60px; height: 34px; padding: 2px; background: #2d2d2d; border: 1px solid #555; border-radius: 4px; cursor: pointer; }
+    input[type=text] { width: 90px; padding: 6px; background: #2d2d2d; border: 1px solid #555; color: #e0e0e0; border-radius: 4px; font-family: monospace; }
+    button { padding: 7px 18px; background: #1565c0; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
+    button:hover { background: #1976d2; }
+    button:disabled { background: #444; cursor: not-allowed; }
+    #log { background: #111; border: 1px solid #333; border-radius: 4px; padding: 12px; height: 300px; overflow-y: auto; }
+    .entry { padding: 3px 0; border-bottom: 1px solid #222; font-size: 0.85rem; }
+    .entry .ts { color: #757575; margin-right: 8px; }
+    .entry .pixel { color: #80cbc4; }
+    .entry .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: middle; margin-right: 4px; border: 1px solid #555; }
+    .section-title { font-size: 0.75rem; color: #757575; text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 6px; }
+  </style>
+</head>
+<body>
+  <h1>Canvas WebSocket Test Client</h1>
+  <div id="status" class="disconnected">Desconectado</div>
+
+  <div class="section-title">Pintar pixel</div>
+  <form id="paint-form">
+    <label>X <input type="number" id="px" value="5" min="0" max="99"></label>
+    <label>Y <input type="number" id="py" value="10" min="0" max="99"></label>
+    <label>Color (hex)
+      <div style="display:flex;gap:4px;">
+        <input type="color" id="pc" value="#FF5733">
+        <input type="text" id="pc-text" value="#FF5733" maxlength="7">
+      </div>
+    </label>
+    <button type="submit" id="btn-paint" disabled>Pintar</button>
+  </form>
+
+  <div class="section-title">Pixels recibidos via /topic/canvas</div>
+  <div id="log"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  <script>
+    const statusEl = document.getElementById('status');
+    const logEl    = document.getElementById('log');
+    const btnPaint = document.getElementById('btn-paint');
+    const pcPicker = document.getElementById('pc');
+    const pcText   = document.getElementById('pc-text');
+
+    // Sync color picker <-> text input
+    pcPicker.addEventListener('input', () => { pcText.value = pcPicker.value.toUpperCase(); });
+    pcText.addEventListener('input', () => {
+      if (/^#[0-9A-Fa-f]{6}$/.test(pcText.value)) pcPicker.value = pcText.value;
+    });
+
+    function setStatus(connected) {
+      statusEl.textContent = connected ? 'Conectado' : 'Desconectado';
+      statusEl.className = connected ? 'connected' : 'disconnected';
+      btnPaint.disabled = !connected;
+    }
+
+    function appendLog(pixel) {
+      const ts = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = 'entry';
+      div.innerHTML =
+        '<span class="ts">' + ts + '</span>' +
+        '<span class="swatch" style="background:' + pixel.color + '"></span>' +
+        '<span class="pixel">x=' + pixel.x + '  y=' + pixel.y + '  color=' + pixel.color + '</span>';
+      logEl.prepend(div);
+    }
+
+    const socket = new SockJS('http://localhost:8082/ws-canvas');
+    const client = Stomp.over(socket);
+    client.debug = null; // silencia el log de STOMP en consola
+
+    client.connect({}, function() {
+      setStatus(true);
+      client.subscribe('/topic/canvas', function(msg) {
+        const pixel = JSON.parse(msg.body);
+        appendLog(pixel);
+      });
+    }, function() {
+      setStatus(false);
+    });
+
+    document.getElementById('paint-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const x     = parseInt(document.getElementById('px').value, 10);
+      const y     = parseInt(document.getElementById('py').value, 10);
+      const color = pcText.value.trim();
+      if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
+        alert('Color invalido. Usa formato #RRGGBB');
+        return;
+      }
+      client.send('/app/canvas/pixel', {}, JSON.stringify({ x, y, color }));
+    });
+  </script>
+</body>
+</html>
