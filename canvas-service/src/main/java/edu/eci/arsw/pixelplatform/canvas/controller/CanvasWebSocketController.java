@@ -1,6 +1,8 @@
 package edu.eci.arsw.pixelplatform.canvas.controller;
 
 import edu.eci.arsw.pixelplatform.canvas.dto.PixelDTO;
+import edu.eci.arsw.pixelplatform.canvas.dto.PixelPaintCommand;
+import edu.eci.arsw.pixelplatform.canvas.exception.CooldownActiveException;
 import edu.eci.arsw.pixelplatform.canvas.service.CanvasStateService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -22,12 +24,12 @@ public class CanvasWebSocketController {
 
     @MessageMapping("/canvas/pixel")
     @SendTo("/topic/canvas")
-    public PixelDTO handlePixel(@Valid PixelDTO pixel) {
+    public PixelDTO handlePixel(@Valid PixelPaintCommand command) {
         try {
-            canvasStateService.paintPixel(pixel);
-            return pixel;
-        } catch (IllegalArgumentException e) {
-            log.warn("Pixel rechazado por coordenadas invalidas: {}", e.getMessage());
+            canvasStateService.paintPixelWithCooldown(command);
+            return new PixelDTO(command.x(), command.y(), command.color());
+        } catch (IllegalArgumentException | CooldownActiveException e) {
+            log.warn("Pixel rechazado [user={}]: {}", command.userId(), e.getMessage());
             return null;
         }
     }
