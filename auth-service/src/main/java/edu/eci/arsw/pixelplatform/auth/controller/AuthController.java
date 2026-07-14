@@ -89,7 +89,7 @@ public class AuthController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<?> getAllUsers(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<?> getAllUsers(@RequestHeader(value = "Authorization", required = false) String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ") ||
                 !jwtService.isTokenValid(authHeader.substring(7))) {
             return ResponseEntity.status(401).body(Map.of("error", "Token invalido o expirado"));
@@ -99,7 +99,7 @@ public class AuthController {
 
     @GetMapping("/users/{userId}")
     public ResponseEntity<?> getUserById(@PathVariable String userId,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ") ||
                 !jwtService.isTokenValid(authHeader.substring(7))) {
             return ResponseEntity.status(401).body(Map.of("error", "Token invalido o expirado"));
@@ -113,7 +113,7 @@ public class AuthController {
 
     @PostMapping("/notifications/send-invitation-email")
     public ResponseEntity<?> sendInvitationEmail(@Valid @RequestBody SendInvitationEmailRequest request,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ") ||
                 !jwtService.isTokenValid(authHeader.substring(7))) {
             return ResponseEntity.status(401).body(Map.of("error", "Token invalido o expirado"));
@@ -133,7 +133,7 @@ public class AuthController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam String requesterId,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ") ||
                 !jwtService.isTokenValid(authHeader.substring(7))) {
             return ResponseEntity.status(401).body(Map.of("error", "Token invalido o expirado"));

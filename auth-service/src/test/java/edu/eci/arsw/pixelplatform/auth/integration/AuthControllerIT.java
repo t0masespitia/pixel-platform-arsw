@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.HttpEntity;
@@ -24,6 +25,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,6 +50,9 @@ class AuthControllerIT {
 
     @Autowired
     private TestRestTemplate restTemplate;
+
+    @LocalServerPort
+    private int port;
 
     @Autowired
     private UserRepository userRepository;
@@ -95,7 +103,7 @@ class AuthControllerIT {
     }
 
     @Test
-    void flujoCompletoRegistroVerificacionYLoginDeberiaFuncionar() {
+    void flujoCompletoRegistroVerificacionYLoginDeberiaFuncionar() throws Exception {
         restTemplate.postForEntity("/api/auth/register", nuevoRegistro("completo@test.com"), Map.class);
         User user = userRepository.findByEmail("completo@test.com").orElseThrow();
         String codigoReal = user.getVerificationCode();
@@ -113,11 +121,8 @@ class AuthControllerIT {
         assertThat(loginOk.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(loginOk.getBody()).containsKey("token");
 
-        ResponseEntity<Map> loginMal = restTemplate.postForEntity(
-                "/api/auth/login",
-                new LoginRequest("completo@test.com", "ClaveIncorrecta"),
-                Map.class);
-        assertThat(loginMal.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(postLoginStatus("completo@test.com", "ClaveIncorrecta"))
+                .isEqualTo(HttpStatus.UNAUTHORIZED.value());
     }
 
     @Test
@@ -141,5 +146,18 @@ class AuthControllerIT {
                 "/api/auth/users", HttpMethod.GET, entity, Map.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    private int postLoginStatus(String email, String password) throws Exception {
+        String body = """
+                {"email":"%s","password":"%s"}
+                """.formatted(email, password);
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/auth/login"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+        return HttpClient.newHttpClient()
+                .send(request, HttpResponse.BodyHandlers.discarding())
+                .statusCode();
     }
 }
