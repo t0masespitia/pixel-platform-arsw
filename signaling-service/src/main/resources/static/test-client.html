@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Signaling WebRTC Test Client</title>
+  <style>
+    body { font-family: monospace; max-width: 720px; margin: 40px auto; padding: 0 20px; background: #1a1a1a; color: #e0e0e0; }
+    h1 { color: #90caf9; font-size: 1.2rem; }
+    #status { padding: 6px 12px; border-radius: 4px; display: inline-block; font-weight: bold; margin-bottom: 16px; }
+    #status.connected { background: #1b5e20; color: #a5d6a7; }
+    #status.disconnected { background: #b71c1c; color: #ef9a9a; }
+    .row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+    label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: #bdbdbd; }
+    input[type=text] { padding: 6px; background: #2d2d2d; border: 1px solid #555; color: #e0e0e0; border-radius: 4px; font-family: monospace; }
+    button { padding: 7px 18px; background: #1565c0; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
+    button:hover { background: #1976d2; }
+    button:disabled { background: #444; cursor: not-allowed; }
+    #btn-mute { background: #4a148c; }
+    #btn-mute:hover { background: #6a1b9a; }
+    #btn-leave { background: #b71c1c; }
+    #btn-leave:hover { background: #c62828; }
+    #log { background: #111; border: 1px solid #333; border-radius: 4px; padding: 12px; height: 220px; overflow-y: auto; }
+    .entry { padding: 3px 0; border-bottom: 1px solid #222; font-size: 0.85rem; }
+    .entry .ts { color: #757575; margin-right: 8px; }
+    .entry .evt { color: #80cbc4; }
+    .section-title { font-size: 0.75rem; color: #757575; text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 6px; }
+    #peers-list { font-size: 0.85rem; color: #a5d6a7; margin-bottom: 8px; min-height: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Signaling WebRTC Test Client (voz por lienzo)</h1>
+  <div id="status" class="disconnected">Desconectado</div>
+
+  <div class="section-title">Conexion</div>
+  <div class="row">
+    <label>Canvas ID
+      <input type="text" id="canvasId" style="width:300px;" placeholder="UUID del lienzo (pegar manualmente)">
+    </label>
+    <label>User ID
+      <input type="text" id="userId" style="width:140px;">
+    </label>
+    <button type="button" id="btn-connect">Conectar y unirse a la sala de voz</button>
+  </div>
+
+  <div class="section-title">Controles</div>
+  <div class="row">
+    <button type="button" id="btn-mute" disabled>Silenciar microfono</button>
+    <button type="button" id="btn-leave" disabled>Salir de la sala</button>
+  </div>
+
+  <div class="section-title">Participantes activos</div>
+  <div id="peers-list">-</div>
+
+  <div class="section-title">Log de eventos</div>
+  <div id="log"></div>
+
+  <div id="audio-container"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  <script>
+    document.getElementById('userId').value = 'usuario-' + Math.floor(Math.random() * 10000);
+
+    const logEl          = document.getElementById('log');
+    const statusEl       = document.getElementById('status');
+    const peersListEl    = document.getElementById('peers-list');
+    const audioContainer = document.getElementById('audio-container');
+    const btnConnect     = document.getElementById('btn-connect');
+    const btnMute        = document.getElementById('btn-mute');
+    const btnLeave       = document.getElementById('btn-leave');
+
+    let stompClient    = null;
+    let localStream    = null;
+    let micEnabled     = true;
+    let myUserId       = null;
+    let myCanvasId     = null;
+
+    const peerConnections   = {};
+    const remoteAudioEls    = {};
+    const activePeers       = new Set();
+
+    const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
+
+    function log(msg) {
+      const ts  = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = 'entry';
+      div.innerHTML = '<span class="ts">' + ts + '</span><span class="evt">' + msg + '</span>';
+      logEl.prepend(div);
+    }
+
+    function updatePeersList() {
+      peersListEl.textContent = activePeers.size > 0 ? Array.from(activePeers).join(', ') : '-';
+    }
+
+    function setStatus(connected) {
+      statusEl.textContent = connected ? 'Conectado' : 'Desconectado';
+      statusEl.className   = connected ? 'connected' : 'disconnected';
+      btnMute.disabled  = !connected;
+      btnLeave.disabled = !connected;
+    }
+
+    function getOrCreateAudio(remoteUserId) {
+      if (remoteAudioEls[remoteUserId]) return remoteAudioEls[remoteUserId];
+      const audio = document.createElement('audio');
+      audio.autoplay = true;
+      audioContainer.appendChild(audio);
+      remoteAudioEls[remoteUserId] = audio;
+      return audio;
+    }
+
+    function removeAudio(remoteUserId) {
+      if (remoteAudioEls[remoteUserId]) {
+        remoteAudioEls[remoteUserId].remove();
+        delete remoteAudioEls[remoteUserId];
+      }
+    }
+
+    function createPeerConnection(remoteUserId) {
+      const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+      pc.onicecandidate = function(event) {
+        if (event.candidate) {
+          stompClient.send(
+            '/app/signaling/' + myCanvasId + '/ice-candidate', {},
+            JSON.stringify({ fromUserId: myUserId, toUserId: remoteUserId, candidate: JSON.stringify(event.candidate) })
+          );
+        }
+      };
+
+      pc.ontrack = function(event) {
+        const audio = getOrCreateAudio(remoteUserId);
+        audio.srcObject = event.streams[0];
+      };
+
+      peerConnections[remoteUserId] = pc;
+      return pc;
+    }
+
+    function closePeerConnection(remoteUserId) {
+      if (peerConnections[remoteUserId]) {
+        peerConnections[remoteUserId].close();
+        delete peerConnections[remoteUserId];
+      }
+      removeAudio(remoteUserId);
+      activePeers.delete(remoteUserId);
+      updatePeersList();
+    }
+
+    function closeAllPeerConnections() {
+      Object.keys(peerConnections).forEach(closePeerConnection);
+    }
+
+    function handleEvent(data) {
+      switch (data.type) {
+        case 'ROOM_JOINED':
+          log('Sala unida. Pares existentes: [' + (data.existingPeers.join(', ') || 'ninguno') + ']');
+          data.existingPeers.forEach(async function(peerId) {
+            activePeers.add(peerId);
+            const pc = createPeerConnection(peerId);
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            stompClient.send(
+              '/app/signaling/' + myCanvasId + '/offer', {},
+              JSON.stringify({ fromUserId: myUserId, toUserId: peerId, sdp: offer.sdp })
+            );
+          });
+          updatePeersList();
+          break;
+        case 'PEER_JOINED':
+          log('Nuevo participante conectandose: ' + data.userId);
+          activePeers.add(data.userId);
+          updatePeersList();
+          break;
+        case 'PEER_LEFT':
+          log('Participante salio: ' + data.userId);
+          closePeerConnection(data.userId);
+          break;
+        case 'SDP_OFFER':
+          handleSdpOffer(data);
+          break;
+        case 'SDP_ANSWER':
+          handleSdpAnswer(data);
+          break;
+        case 'ICE_CANDIDATE':
+          handleIceCandidate(data);
+          break;
+      }
+    }
+
+    async function handleSdpOffer(data) {
+      const pc = createPeerConnection(data.fromUserId);
+      activePeers.add(data.fromUserId);
+      updatePeersList();
+      await pc.setRemoteDescription({ type: 'offer', sdp: data.sdp });
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      stompClient.send(
+        '/app/signaling/' + myCanvasId + '/answer', {},
+        JSON.stringify({ fromUserId: myUserId, toUserId: data.fromUserId, sdp: answer.sdp })
+      );
+      log('Oferta recibida de ' + data.fromUserId + ' - respuesta enviada');
+    }
+
+    async function handleSdpAnswer(data) {
+      const pc = peerConnections[data.fromUserId];
+      if (pc) {
+        await pc.setRemoteDescription({ type: 'answer', sdp: data.sdp });
+        log('Respuesta recibida de ' + data.fromUserId);
+      }
+    }
+
+    async function handleIceCandidate(data) {
+      const pc = peerConnections[data.fromUserId];
+      if (pc) {
+        try {
+          await pc.addIceCandidate(JSON.parse(data.candidate));
+        } catch (e) {
+          log('Error al agregar ICE candidate de ' + data.fromUserId + ': ' + e.message);
+        }
+      }
+    }
+
+    btnConnect.addEventListener('click', async function() {
+      const canvasId = document.getElementById('canvasId').value.trim();
+      const userId   = document.getElementById('userId').value.trim();
+      if (!canvasId) { alert('Ingresa un Canvas ID'); return; }
+      if (!userId)   { alert('Ingresa un User ID'); return; }
+
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        log('Microfono activado');
+      } catch (e) {
+        log('Error al acceder al microfono: ' + e.message + ' (asegurate de permitir el acceso)');
+        return;
+      }
+
+      myCanvasId = canvasId;
+      myUserId   = userId;
+
+      if (stompClient && stompClient.connected) {
+        stompClient.disconnect();
+      }
+
+      const socket = new SockJS('http://localhost:8084/ws-signaling');
+      stompClient  = Stomp.over(socket);
+      stompClient.debug = null;
+
+      stompClient.connect({}, function() {
+        setStatus(true);
+        log('STOMP conectado. Uniendose a la sala...');
+
+        stompClient.subscribe('/topic/signaling/' + canvasId + '/' + userId, function(msg) {
+          handleEvent(JSON.parse(msg.body));
+        });
+
+        stompClient.send('/app/signaling/' + canvasId + '/join', {}, JSON.stringify({ userId: userId }));
+      }, function() {
+        setStatus(false);
+        log('Desconectado del servidor de senalizacion');
+      });
+    });
+
+    btnMute.addEventListener('click', function() {
+      if (!localStream) return;
+      micEnabled = !micEnabled;
+      localStream.getAudioTracks().forEach(t => { t.enabled = micEnabled; });
+      btnMute.textContent = micEnabled ? 'Silenciar microfono' : 'Activar microfono';
+      log(micEnabled ? 'Microfono activado' : 'Microfono silenciado');
+    });
+
+    btnLeave.addEventListener('click', function() {
+      if (!stompClient || !stompClient.connected) return;
+      stompClient.send('/app/signaling/' + myCanvasId + '/leave', {}, JSON.stringify({ userId: myUserId }));
+      closeAllPeerConnections();
+      stompClient.disconnect();
+      setStatus(false);
+      activePeers.clear();
+      updatePeersList();
+      log('Saliste de la sala');
+    });
+  </script>
+</body>
+</html>

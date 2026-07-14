@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Service Test Client</title>
+  <style>
+    body { font-family: monospace; max-width: 600px; margin: 40px auto; padding: 0 20px; background: #1a1a1a; color: #e0e0e0; }
+    h1 { color: #90caf9; font-size: 1.2rem; }
+    label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: #bdbdbd; margin-bottom: 12px; }
+    input[type=text], input[type=file] { padding: 6px; background: #2d2d2d; border: 1px solid #555; color: #e0e0e0; border-radius: 4px; font-family: monospace; }
+    input[type=text] { width: 100%; box-sizing: border-box; }
+    button { padding: 8px 20px; background: #1565c0; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; margin-top: 4px; }
+    button:hover { background: #1976d2; }
+    button:disabled { background: #444; cursor: not-allowed; }
+    #result { margin-top: 20px; background: #111; border: 1px solid #333; border-radius: 4px; padding: 12px; white-space: pre-wrap; font-size: 0.85rem; min-height: 60px; }
+    #result.success { border-color: #2e7d32; color: #a5d6a7; }
+    #result.error   { border-color: #b71c1c; color: #ef9a9a; }
+    .section-title { font-size: 0.75rem; color: #757575; text-transform: uppercase; letter-spacing: 1px; margin: 20px 0 8px; border-top: 1px solid #333; padding-top: 12px; }
+  </style>
+</head>
+<body>
+  <h1>AI Service — Generador de Plantillas</h1>
+
+  <div class="section-title">Parametros</div>
+
+  <label>Canvas ID (UUID del lienzo privado)
+    <input type="text" id="canvasId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="width:100%;">
+  </label>
+
+  <label>Requester ID (debe coincidir con el ownerId del lienzo)
+    <input type="text" id="requesterId" placeholder="owner1">
+  </label>
+
+  <label>Imagen PNG a convertir
+    <input type="file" id="imageFile" accept="image/png,image/jpeg,image/gif,image/webp">
+  </label>
+
+  <button id="btn-generate" onclick="generateTemplate()">Generar plantilla</button>
+
+  <div class="section-title">Resultado</div>
+  <div id="result">El resultado aparecera aqui...</div>
+
+  <script>
+    async function generateTemplate() {
+      const canvasId    = document.getElementById('canvasId').value.trim();
+      const requesterId = document.getElementById('requesterId').value.trim();
+      const fileInput   = document.getElementById('imageFile');
+      const resultEl    = document.getElementById('result');
+      const btn         = document.getElementById('btn-generate');
+
+      if (!canvasId || !requesterId || !fileInput.files.length) {
+        resultEl.className = 'error';
+        resultEl.textContent = 'Completa todos los campos antes de continuar.';
+        return;
+      }
+
+      btn.disabled = true;
+      resultEl.className = '';
+      resultEl.textContent = 'Procesando...';
+
+      const formData = new FormData();
+      formData.append('requesterId', requesterId);
+      formData.append('file', fileInput.files[0]);
+
+      try {
+        const res = await fetch(
+          'http://localhost:8085/api/ai/canvases/' + encodeURIComponent(canvasId) + '/generate-template',
+          { method: 'POST', body: formData }
+        );
+        const data = await res.json();
+        if (res.ok) {
+          resultEl.className = 'success';
+          resultEl.textContent =
+            'Plantilla generada exitosamente.\n\n' +
+            'Canvas ID:      ' + data.canvasId + '\n' +
+            'Pixels escritos: ' + data.pixelsWritten + '\n' +
+            'Dimensiones:    ' + data.width + ' x ' + data.height;
+        } else {
+          resultEl.className = 'error';
+          resultEl.textContent = 'Error ' + res.status + ': ' + (data.error || JSON.stringify(data));
+        }
+      } catch (err) {
+        resultEl.className = 'error';
+        resultEl.textContent = 'Error de red: ' + err.message + '\n\nVerifica que ai-service este corriendo en el puerto 8085.';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

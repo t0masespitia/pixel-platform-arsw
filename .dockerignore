@@ -1,0 +1,26 @@
+# Control de versiones
+.git
+.gitignore
+.gitattributes
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# Archivos de build locales (se regeneran en el contenedor)
+**/target/
+
+# Frontend (tiene su propio Dockerfile)
+frontend/
+frontend/node_modules/
+
+# Documentacion y configuracion no necesaria en imagen
+*.md
+*.txt
+nginx/
+
+# Variables de entorno locales
+.env
+.env.*

@@ -26,10 +26,23 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    private String firstName;
+
+    private String lastName;
+
     private LocalDateTime createdAt;
 
     @Builder.Default
     private boolean enabled = true;
+
+    @Builder.Default
+    private boolean emailVerified = false;
+
+    private String verificationCode;
+
+    private LocalDateTime verificationCodeExpiresAt;
+
+    private String avatarUrl;
 
     @PrePersist
     void prePersist() {

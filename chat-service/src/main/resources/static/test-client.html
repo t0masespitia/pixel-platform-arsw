@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat WebSocket Test Client</title>
+  <style>
+    body { font-family: monospace; max-width: 700px; margin: 40px auto; padding: 0 20px; background: #1a1a1a; color: #e0e0e0; }
+    h1 { color: #90caf9; font-size: 1.2rem; }
+    #status { padding: 6px 12px; border-radius: 4px; display: inline-block; font-weight: bold; margin-bottom: 16px; }
+    #status.connected { background: #1b5e20; color: #a5d6a7; }
+    #status.disconnected { background: #b71c1c; color: #ef9a9a; }
+    .row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+    label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: #bdbdbd; }
+    input[type=text] { padding: 6px; background: #2d2d2d; border: 1px solid #555; color: #e0e0e0; border-radius: 4px; font-family: monospace; }
+    button { padding: 7px 18px; background: #1565c0; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
+    button:hover { background: #1976d2; }
+    button:disabled { background: #444; cursor: not-allowed; }
+    #log { background: #111; border: 1px solid #333; border-radius: 4px; padding: 12px; height: 260px; overflow-y: auto; }
+    .entry { padding: 3px 0; border-bottom: 1px solid #222; font-size: 0.85rem; }
+    .entry .ts { color: #757575; margin-right: 8px; }
+    .entry .author { color: #80cbc4; margin-right: 6px; }
+    .entry .msg { color: #e0e0e0; }
+    .section-title { font-size: 0.75rem; color: #757575; text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 6px; }
+    /* Nota conocida: si el backend rechaza el mensaje por falta de acceso al lienzo,
+       el mensaje simplemente no aparece en el log — no hay notificacion de error al cliente
+       en esta primera version. */
+  </style>
+</head>
+<body>
+  <h1>Chat WebSocket Test Client</h1>
+  <div id="status" class="disconnected">Desconectado</div>
+
+  <div class="section-title">Conexion</div>
+  <div class="row">
+    <label>Canvas ID
+      <input type="text" id="canvasId" style="width:300px;" placeholder="UUID del lienzo (pegar manualmente)">
+    </label>
+    <label>User ID
+      <input type="text" id="userId" style="width:140px;">
+    </label>
+    <button type="button" id="btn-connect">Conectar a este chat</button>
+  </div>
+
+  <div class="section-title">Mensajes recibidos via /topic/chat/{canvasId}</div>
+  <div id="log"></div>
+
+  <div class="section-title">Enviar mensaje</div>
+  <div class="row">
+    <label style="flex:1;">Mensaje
+      <input type="text" id="msgInput" maxlength="500" style="width:100%;" placeholder="Escribe un mensaje...">
+    </label>
+    <button type="button" id="btn-send" disabled>Enviar</button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  <script>
+    document.getElementById('userId').value = 'usuario-' + Math.floor(Math.random() * 10000);
+
+    const statusEl  = document.getElementById('status');
+    const logEl     = document.getElementById('log');
+    const btnSend   = document.getElementById('btn-send');
+    const btnConnect = document.getElementById('btn-connect');
+
+    let stompClient = null;
+    let currentCanvasId = null;
+
+    function setStatus(connected) {
+      statusEl.textContent = connected ? 'Conectado' : 'Desconectado';
+      statusEl.className = connected ? 'connected' : 'disconnected';
+      btnSend.disabled = !connected;
+    }
+
+    function appendLog(data) {
+      const ts = new Date(data.timestamp).toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = 'entry';
+      div.innerHTML =
+        '<span class="ts">' + ts + '</span>' +
+        '<span class="author">' + data.userId + '</span>' +
+        '<span class="msg">' + data.message + '</span>';
+      logEl.prepend(div);
+    }
+
+    btnConnect.addEventListener('click', function() {
+      const canvasId = document.getElementById('canvasId').value.trim();
+      if (!canvasId) { alert('Ingresa un Canvas ID'); return; }
+
+      if (stompClient && stompClient.connected) {
+        stompClient.disconnect();
+        stompClient = null;
+        setStatus(false);
+      }
+
+      currentCanvasId = canvasId;
+      const socket = new SockJS('http://localhost:8083/ws-chat');
+      stompClient = Stomp.over(socket);
+      stompClient.debug = null;
+
+      stompClient.connect({}, function() {
+        setStatus(true);
+        stompClient.subscribe('/topic/chat/' + canvasId, function(msg) {
+          appendLog(JSON.parse(msg.body));
+        });
+      }, function() {
+        setStatus(false);
+      });
+    });
+
+    document.getElementById('btn-send').addEventListener('click', function() {
+      if (!stompClient || !stompClient.connected || !currentCanvasId) return;
+      const userId  = document.getElementById('userId').value.trim();
+      const message = document.getElementById('msgInput').value.trim();
+      if (!userId)  { alert('El User ID no puede estar vacio'); return; }
+      if (!message) { alert('El mensaje no puede estar vacio'); return; }
+      stompClient.send('/app/chat/' + currentCanvasId + '/send', {}, JSON.stringify({ userId, message }));
+      document.getElementById('msgInput').value = '';
+    });
+
+    document.getElementById('msgInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('btn-send').click();
+    });
+  </script>
+</body>
+</html>

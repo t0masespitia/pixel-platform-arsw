@@ -1,0 +1,109 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #2A1345;
+    --color-on-primary: #FFFFFF;
+    --color-secondary: #A78BC9;
+    --color-accent: #EC4899;
+    --color-background: #1B0B2E;
+    --color-foreground: #FAFAFA;
+    --color-muted: #3B1B5C;
+    --color-border: #6D3FA0;
+    --color-destructive: #DC2626;
+    --color-success: #22C55E;
+    --color-warning: #F59E0B;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: #1B0B2E;
+    color: #FAFAFA;
+    font-family: 'VT323', monospace;
+    font-size: 15px;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Press Start 2P', monospace;
+    line-height: 1.6;
+    text-shadow: 0 0 8px rgba(236, 72, 153, 0.55);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-accent text-white font-heading text-xs px-3 py-2
+           cursor-pointer transition-all duration-200
+           hover:shadow-accent-lg hover:scale-105
+           focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-none;
+    border: 2px solid #EC4899;
+    image-rendering: pixelated;
+  }
+
+  .btn-secondary {
+    @apply bg-muted text-foreground font-heading text-xs px-3 py-2
+           cursor-pointer transition-all duration-200 border border-border
+           hover:border-accent hover:text-accent
+           focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-foreground font-body text-lg px-2.5 py-1
+           cursor-pointer transition-all duration-150 border border-transparent
+           hover:border-border hover:bg-muted
+           focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 focus:ring-offset-background;
+  }
+
+  .input-field {
+    @apply w-full bg-muted border border-border text-foreground font-body text-lg px-2.5 py-1.5
+           transition-colors duration-150 placeholder:text-secondary
+           focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent;
+  }
+
+  .card {
+    @apply bg-primary border border-border p-4 transition-all duration-200;
+  }
+
+  .card-interactive {
+    @apply card cursor-pointer hover:border-accent hover:shadow-accent;
+  }
+
+  .pixel-border {
+    border: 2px solid #3F3F46;
+    box-shadow: inset 0 0 0 1px #1B0B2E;
+  }
+
+  .text-glow-accent {
+    text-shadow: 0 0 10px #EC4899, 0 0 20px #EC4899;
+  }
+
+  .label-field {
+    @apply block font-heading text-xs text-secondary mb-2 uppercase tracking-wide;
+  }
+
+  .canvas-scroll-container {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .canvas-scroll-container::-webkit-scrollbar {
+    display: none;
+  }
+}

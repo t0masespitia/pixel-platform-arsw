@@ -1,0 +1,5 @@
+# Copia este archivo a application-dev-local.properties (sin .example)
+# y completa con tus credenciales reales de Gmail. Ese archivo NO se
+# sube a git.
+spring.mail.username=tu_correo@gmail.com
+spring.mail.password=tu_app_password_de_16_caracteres

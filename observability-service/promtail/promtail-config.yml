@@ -1,0 +1,49 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: pixelplatform
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: pixelplatform
+          service: auth-service
+          __path__: /var/log/pixelplatform/auth-service/*.log
+      - targets:
+          - localhost
+        labels:
+          job: pixelplatform
+          service: canvas-service
+          __path__: /var/log/pixelplatform/canvas-service/*.log
+      - targets:
+          - localhost
+        labels:
+          job: pixelplatform
+          service: chat-service
+          __path__: /var/log/pixelplatform/chat-service/*.log
+      - targets:
+          - localhost
+        labels:
+          job: pixelplatform
+          service: signaling-service
+          __path__: /var/log/pixelplatform/signaling-service/*.log
+      - targets:
+          - localhost
+        labels:
+          job: pixelplatform
+          service: ai-service
+          __path__: /var/log/pixelplatform/ai-service/*.log
+      - targets:
+          - localhost
+        labels:
+          job: pixelplatform
+          service: api-gateway
+          __path__: /var/log/pixelplatform/api-gateway/*.log
