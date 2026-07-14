@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+const BASE_URL = import.meta.env.VITE_API_GATEWAY_URL || ''
 
 export const aiApi = {
   generateTemplate: (token, canvasId, requesterId, file, mode = 'COLOR') => {

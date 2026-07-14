@@ -27,16 +27,25 @@ public class CanvasSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (canvasRepository.findById(CanvasConstants.GENERAL_CANVAS_ID).isEmpty()) {
-            Canvas general = new Canvas();
-            general.setId(CanvasConstants.GENERAL_CANVAS_ID);
-            general.setName("General");
-            general.setOwnerId(null);
-            general.setWidth(generalWidth);
-            general.setHeight(generalHeight);
-            general.setPrivate(false);
-            general.setCreatedAt(Instant.now());
-            canvasRepository.save(general);
-        }
+        canvasRepository.findById(CanvasConstants.GENERAL_CANVAS_ID).ifPresentOrElse(
+                existing -> {
+                    if (existing.getWidth() != generalWidth || existing.getHeight() != generalHeight) {
+                        existing.setWidth(generalWidth);
+                        existing.setHeight(generalHeight);
+                        canvasRepository.save(existing);
+                    }
+                },
+                () -> {
+                    Canvas general = new Canvas();
+                    general.setId(CanvasConstants.GENERAL_CANVAS_ID);
+                    general.setName("General");
+                    general.setOwnerId(null);
+                    general.setWidth(generalWidth);
+                    general.setHeight(generalHeight);
+                    general.setPrivate(false);
+                    general.setCreatedAt(Instant.now());
+                    canvasRepository.save(general);
+                }
+        );
     }
 }

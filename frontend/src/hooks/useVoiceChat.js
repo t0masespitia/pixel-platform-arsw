@@ -32,7 +32,7 @@ export function useVoiceChat(canvasId, userId, token) {
     localStreamRef.current = stream
     setVoiceStatus('connecting')
 
-    const baseUrl = import.meta.env.VITE_SIGNALING_SERVICE_URL || 'http://localhost:8084'
+    const baseUrl = import.meta.env.VITE_SIGNALING_SERVICE_URL || window.location.origin
 
     function createPC(peerId) {
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS })

@@ -35,7 +35,7 @@ export function DirectMessagesProvider({ children }) {
   useEffect(() => {
     if (!isAuthenticated || !token || !userId) return
 
-    const baseUrl = import.meta.env.VITE_CHAT_SERVICE_URL || 'http://localhost:8083'
+    const baseUrl = import.meta.env.VITE_CHAT_SERVICE_URL || window.location.origin
     const client = new Client({
       webSocketFactory: () => new SockJS(`${baseUrl}/ws-chat`),
       connectHeaders: { Authorization: `Bearer ${token}` },

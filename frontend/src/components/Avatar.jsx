@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const ASSET_BASE_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+const ASSET_BASE_URL = import.meta.env.VITE_API_GATEWAY_URL || ''
 
 const PALETTE = ['#EC4899', '#22C55E', '#F59E0B', '#3B82F6', '#A855F7', '#14B8A6']
 

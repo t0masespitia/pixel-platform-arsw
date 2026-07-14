@@ -1,32 +1,25 @@
 services:
 
-  # ─────────────────────────────────────────────
-  # PostgreSQL
-  # ─────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: pixelplatform-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: pixelplatform
       POSTGRES_USER: pixel_user
       POSTGRES_PASSWORD: pixel_pass
+      POSTGRES_DB: postgres
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pixel_user -d pixelplatform"]
+      test: ["CMD-SHELL", "pg_isready -U pixel_user -d postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # ─────────────────────────────────────────────
-  # Redis
-  # ─────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: pixelplatform-redis
     restart: unless-stopped
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
@@ -39,71 +32,164 @@ services:
       timeout: 5s
       retries: 5
 
-  # ─────────────────────────────────────────────
-  # Backend — Spring Boot
-  # ─────────────────────────────────────────────
-  app:
+  auth-service:
     build:
-      context: .
+      context: ./auth-service
       dockerfile: Dockerfile
-    container_name: pixelplatform-app
     restart: unless-stopped
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: pixelplatform
-      DB_USER: pixel_user
-      DB_PASS: pixel_pass
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      JWT_SECRET: ${JWT_SECRET:-cambiar_este_secreto_en_produccion_minimo_32chars}
-      JWT_EXPIRATION_MS: 86400000
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: pixel_user
+      SPRING_DATASOURCE_PASSWORD: pixel_pass
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-pixelplatform-auth-service-arsw-2026}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_APP_PASSWORD: ${MAIL_APP_PASSWORD:-}
     ports:
-      - "8080:8080"
+      - "8081:8081"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
 
-  # ─────────────────────────────────────────────
-  # Frontend — React + Vite (dev server)
-  # ─────────────────────────────────────────────
+  canvas-service:
+    build:
+      context: ./canvas-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/canvas_db
+      SPRING_DATASOURCE_USERNAME: pixel_user
+      SPRING_DATASOURCE_PASSWORD: pixel_pass
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      AUTH_SERVICE_BASE_URL: http://auth-service:8081
+      CHAT_SERVICE_BASE_URL: http://chat-service:8083
+      FRONTEND_BASE_URL: ${PUBLIC_ORIGIN:-http://localhost}
+      CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-pixelplatform-auth-service-arsw-2026}
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  chat-service:
+    build:
+      context: ./chat-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/chat_db
+      SPRING_DATASOURCE_USERNAME: pixel_user
+      SPRING_DATASOURCE_PASSWORD: pixel_pass
+      CANVAS_SERVICE_BASE_URL: http://canvas-service:8082
+      CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-pixelplatform-auth-service-arsw-2026}
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      canvas-service:
+        condition: service_started
+
+  signaling-service:
+    build:
+      context: ./signaling-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      CANVAS_SERVICE_BASE_URL: http://canvas-service:8082
+      CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-pixelplatform-auth-service-arsw-2026}
+    ports:
+      - "8084:8084"
+    depends_on:
+      canvas-service:
+        condition: service_started
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      CANVAS_SERVICE_BASE_URL: http://canvas-service:8082
+      CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-pixelplatform-auth-service-arsw-2026}
+    ports:
+      - "8085:8085"
+    depends_on:
+      canvas-service:
+        condition: service_started
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-pixelplatform-auth-service-arsw-2026}
+    ports:
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      canvas-service:
+        condition: service_started
+      chat-service:
+        condition: service_started
+      ai-service:
+        condition: service_started
+
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: pixelplatform-frontend
+      args:
+        VITE_API_GATEWAY_URL: ""
+        VITE_CANVAS_SERVICE_URL: ""
+        VITE_CHAT_SERVICE_URL: ""
+        VITE_SIGNALING_SERVICE_URL: ""
     restart: unless-stopped
-    environment:
-      VITE_API_URL: http://localhost/api
-      VITE_WS_URL: ws://localhost/ws
-    ports:
-      - "5173:5173"
-    depends_on:
-      - app
 
-  # ─────────────────────────────────────────────
-  # Nginx — Reverse Proxy
-  # ─────────────────────────────────────────────
   nginx:
     image: nginx:alpine
-    container_name: pixelplatform-nginx
     restart: unless-stopped
     ports:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      app:
-        condition: service_healthy
+      - frontend
+      - api-gateway
+      - canvas-service
+      - chat-service
+      - signaling-service
 
 volumes:
   postgres_data:

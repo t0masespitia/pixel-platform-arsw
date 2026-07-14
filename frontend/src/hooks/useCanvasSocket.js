@@ -11,7 +11,7 @@ export function useCanvasSocket(canvasId, userId, token) {
   useEffect(() => {
     if (!canvasId) return
 
-    const baseUrl = import.meta.env.VITE_CANVAS_SERVICE_URL || 'http://localhost:8082'
+    const baseUrl = import.meta.env.VITE_CANVAS_SERVICE_URL || window.location.origin
 
     const client = new Client({
       webSocketFactory: () => new SockJS(`${baseUrl}/ws-canvas`),
