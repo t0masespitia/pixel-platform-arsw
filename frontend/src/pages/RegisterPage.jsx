@@ -32,6 +32,7 @@ export default function RegisterPage() {
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [nickname, setNickname] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -42,7 +43,7 @@ export default function RegisterPage() {
     setError('')
     setLoading(true)
     try {
-      await register(firstName.trim(), lastName.trim(), email.trim(), password)
+      await register(firstName.trim(), lastName.trim(), email.trim(), password, nickname.trim())
       navigate('/verify-email', { state: { email: email.trim() } })
     } catch (err) {
       setError(mapRegisterError(err))
@@ -120,6 +121,22 @@ export default function RegisterPage() {
                 autoComplete="new-password"
                 minLength={8}
                 required
+              />
+            </div>
+
+            <div className="mb-6">
+              <label htmlFor="nickname" className="label-field">
+                Apodo
+                <span className="ml-1 text-secondary font-body text-base normal-case">(opcional)</span>
+              </label>
+              <input
+                id="nickname"
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                className="input-field"
+                placeholder="Como quieres que te llamen"
+                autoComplete="nickname"
               />
             </div>
 

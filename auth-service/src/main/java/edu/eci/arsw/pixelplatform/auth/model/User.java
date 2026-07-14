@@ -44,6 +44,8 @@ public class User {
 
     private String avatarUrl;
 
+    private String nickname;
+
     @PrePersist
     void prePersist() {
         this.createdAt = LocalDateTime.now();

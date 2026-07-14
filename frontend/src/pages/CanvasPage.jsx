@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Grid, Clock, Lock, Globe, ZoomIn, ZoomOut, Wifi, WifiOff, Loader } from 'lucide-react'
+import { ArrowLeft, Grid, Clock, Lock, Globe, ZoomIn, ZoomOut, Wifi, WifiOff, Loader, Download } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { canvasApi } from '../api/canvasApi.js'
 import { authApi } from '../api/authApi.js'
@@ -161,6 +161,25 @@ function CanvasEditor({ canvas, id, userId, token }) {
   const [membersOpen, setMembersOpen] = useState(false)
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
 
+  const handleDownloadImage = useCallback(() => {
+    const exportCanvas = document.createElement('canvas')
+    exportCanvas.width = canvas.width
+    exportCanvas.height = canvas.height
+    const ctx = exportCanvas.getContext('2d')
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height)
+    Object.entries(displayPixels).forEach(([key, color]) => {
+      const [x, y] = key.split(',').map(Number)
+      if (!Number.isInteger(x) || !Number.isInteger(y)) return
+      ctx.fillStyle = color
+      ctx.fillRect(x, y, 1, 1)
+    })
+    const link = document.createElement('a')
+    link.download = `${canvas.name || 'lienzo'}.png`
+    link.href = exportCanvas.toDataURL('image/png')
+    link.click()
+  }, [canvas, displayPixels])
+
   return (
     <div className="flex gap-3 items-start flex-wrap lg:flex-nowrap">
       {/* Left: owner tools (invitar/gestionar miembros + plantilla desde imagen) */}
@@ -237,6 +256,15 @@ function CanvasEditor({ canvas, id, userId, token }) {
 
         <div className="flex items-center gap-3">
           <ConnectionBadge status={connectionStatus} />
+
+          <button
+            onClick={handleDownloadImage}
+            className="btn-ghost p-1 flex items-center gap-1"
+            aria-label="Descargar lienzo como imagen"
+            title="Descargar como PNG"
+          >
+            <Download size={15} aria-hidden="true" />
+          </button>
 
           {/* Zoom controls */}
           <div className="flex items-center gap-1" role="group" aria-label="Control de zoom">
@@ -362,7 +390,7 @@ function CanvasEditor({ canvas, id, userId, token }) {
 
 export default function CanvasPage() {
   const { id } = useParams()
-  const { token, userId, username, avatarUrl, firstName, lastName } = useAuth()
+  const { token, userId, username, avatarUrl, firstName, lastName, nickname } = useAuth()
   const navigate = useNavigate()
 
   const [canvas, setCanvas] = useState(null)
@@ -408,6 +436,7 @@ export default function CanvasPage() {
               <Avatar avatarUrl={avatarUrl} firstName={firstName} lastName={lastName} userId={userId} size="sm" />
               <span className="font-body text-lg text-secondary">
                 Hola, <span className="text-accent">{username}</span>
+                {nickname && <span className="text-secondary"> ({nickname})</span>}
               </span>
             </button>
           )}

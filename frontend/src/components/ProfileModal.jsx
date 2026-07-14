@@ -6,7 +6,6 @@ import Avatar from './Avatar.jsx'
 import ErrorMessage from './ErrorMessage.jsx'
 import Spinner from './Spinner.jsx'
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 const MAX_SIZE_BYTES = 15 * 1024 * 1024
 
 export default function ProfileModal({ onClose }) {
@@ -22,10 +21,6 @@ export default function ProfileModal({ onClose }) {
     if (!file) return
 
     setError('')
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      setError('Formato no soportado. Usa JPG, PNG o WEBP.')
-      return
-    }
     if (file.size > MAX_SIZE_BYTES) {
       setError('La imagen no puede pesar más de 15MB.')
       return

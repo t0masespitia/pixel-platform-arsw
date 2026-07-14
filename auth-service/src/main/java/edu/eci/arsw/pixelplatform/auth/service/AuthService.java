@@ -61,12 +61,17 @@ public class AuthService {
 
         String code = String.format("%06d", secureRandom.nextInt(1_000_000));
 
+        String nickname = (request.nickname() != null && !request.nickname().isBlank())
+                ? request.nickname().trim()
+                : null;
+
         User user = User.builder()
                 .firstName(request.firstName())
                 .lastName(request.lastName())
                 .username(generateUniqueUsername(request.firstName(), request.lastName()))
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
+                .nickname(nickname)
                 .verificationCode(code)
                 .verificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15))
                 .build();
@@ -163,7 +168,8 @@ public class AuthService {
 
     public List<UserSummaryResponse> getAllUsers() {
         return userRepository.findAll().stream()
-                .map(u -> new UserSummaryResponse(String.valueOf(u.getId()), u.getUsername()))
+                .map(u -> new UserSummaryResponse(String.valueOf(u.getId()), u.getUsername(),
+                        u.getFirstName(), u.getLastName(), u.getAvatarUrl(), u.getNickname()))
                 .toList();
     }
 
@@ -177,7 +183,7 @@ public class AuthService {
         User user = userRepository.findById(Long.parseLong(userId))
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
         return new UserProfileResponse(String.valueOf(user.getId()), user.getUsername(),
-                user.getFirstName(), user.getLastName(), user.getAvatarUrl());
+                user.getFirstName(), user.getLastName(), user.getAvatarUrl(), user.getNickname());
     }
 
     public void sendInvitationNotificationEmail(SendInvitationEmailRequest request) {
@@ -202,7 +208,7 @@ public class AuthService {
         }
         List<UserDirectoryEntry> entries = result.getContent().stream()
                 .map(u -> new UserDirectoryEntry(String.valueOf(u.getId()), u.getUsername(),
-                        u.getFirstName(), u.getLastName(), u.getAvatarUrl()))
+                        u.getFirstName(), u.getLastName(), u.getAvatarUrl(), u.getNickname()))
                 .toList();
         return new DirectoryPageResponse(entries, page, size,
                 result.getTotalElements(), result.getTotalPages());

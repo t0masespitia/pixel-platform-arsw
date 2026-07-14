@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Send } from 'lucide-react'
+import { ArrowLeft, Send, Search } from 'lucide-react'
 import { authApi } from '../api/authApi.js'
 import { canvasApi } from '../api/canvasApi.js'
 import { useDirectMessages } from '../contexts/DirectMessagesContext.jsx'
 import InvitationMessageCard from './InvitationMessageCard.jsx'
 import Spinner from './Spinner.jsx'
 import ErrorMessage from './ErrorMessage.jsx'
+import Avatar from './Avatar.jsx'
 
 const MAX_LENGTH = 1000
 
@@ -21,6 +22,7 @@ export default function MessagesPanel({ currentUserId, token }) {
 
   const [users, setUsers] = useState([])
   const [usersLoading, setUsersLoading] = useState(true)
+  const [search, setSearch] = useState('')
   const [selectedUserId, setSelectedUserId] = useState(null)
   const [text, setText] = useState('')
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -142,6 +144,14 @@ export default function MessagesPanel({ currentUserId, token }) {
   const selectedUser = users.find((u) => u.userId === selectedUserId)
   const remaining = MAX_LENGTH - text.length
 
+  const filteredUsers = users.filter((u) => {
+    const q = search.trim().toLowerCase()
+    if (!q) return true
+    return [u.username, u.firstName, u.lastName, u.nickname]
+      .filter(Boolean)
+      .some((field) => field.toLowerCase().includes(q))
+  })
+
   if (selectedUserId !== null) {
     return (
       <div className="card border-border flex flex-col" style={{ minHeight: 0 }}>
@@ -149,7 +159,19 @@ export default function MessagesPanel({ currentUserId, token }) {
           <button onClick={handleBack} className="btn-ghost flex items-center gap-1 text-sm px-1" aria-label="Volver">
             <ArrowLeft size={14} aria-hidden="true" />
           </button>
-          <span className="label-field">{selectedUser?.username ?? selectedUserId}</span>
+          <Avatar
+            avatarUrl={selectedUser?.avatarUrl}
+            firstName={selectedUser?.firstName}
+            lastName={selectedUser?.lastName}
+            userId={selectedUser?.userId}
+            size="sm"
+          />
+          <span className="label-field">
+            {selectedUser?.username ?? selectedUserId}
+            {selectedUser?.nickname && (
+              <span className="text-secondary normal-case"> ({selectedUser.nickname})</span>
+            )}
+          </span>
         </div>
 
         <div
@@ -263,26 +285,59 @@ export default function MessagesPanel({ currentUserId, token }) {
           No hay otros usuarios registrados.
         </p>
       ) : (
-        <ul className="space-y-1">
-          {users.map((u) => {
-            const unread = unreadCounts[u.userId] || 0
-            return (
-              <li key={u.userId}>
-                <button
-                  onClick={() => openConversation(u.userId)}
-                  className="btn-ghost w-full flex items-center justify-between text-left px-2 py-1.5"
-                >
-                  <span className="font-body text-lg">{u.username}</span>
-                  {unread > 0 && (
-                    <span className="bg-destructive text-white font-body text-base w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">
-                      {unread > 9 ? '9+' : unread}
-                    </span>
-                  )}
-                </button>
-              </li>
-            )
-          })}
-        </ul>
+        <>
+          <div className="relative mb-2">
+            <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-secondary" aria-hidden="true" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nombre..."
+              aria-label="Buscar personas"
+              className="input-field w-full pl-7 text-lg"
+            />
+          </div>
+          {filteredUsers.length === 0 ? (
+            <p className="font-body text-lg text-secondary text-center py-4">
+              Nadie coincide con "{search}".
+            </p>
+          ) : (
+            <ul className="space-y-1">
+              {filteredUsers.map((u) => {
+                const unread = unreadCounts[u.userId] || 0
+                return (
+                  <li key={u.userId}>
+                    <button
+                      onClick={() => openConversation(u.userId)}
+                      className="btn-ghost w-full flex items-center justify-between text-left px-2 py-1.5"
+                    >
+                      <span className="flex items-center gap-2 min-w-0">
+                        <Avatar
+                          avatarUrl={u.avatarUrl}
+                          firstName={u.firstName}
+                          lastName={u.lastName}
+                          userId={u.userId}
+                          size="sm"
+                        />
+                        <span className="font-body text-lg truncate">
+                          {u.username}
+                          {u.nickname && (
+                            <span className="text-secondary"> ({u.nickname})</span>
+                          )}
+                        </span>
+                      </span>
+                      {unread > 0 && (
+                        <span className="bg-destructive text-white font-body text-base w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">
+                          {unread > 9 ? '9+' : unread}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </>
       )}
     </div>
   )

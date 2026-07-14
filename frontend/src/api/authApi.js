@@ -5,8 +5,8 @@ const BASE_URL = import.meta.env.VITE_API_GATEWAY_URL || ''
 export const authApi = {
   login: (email, password) =>
     axios.post(`${BASE_URL}/api/auth/login`, { email, password }),
-  register: (firstName, lastName, email, password) =>
-    axios.post(`${BASE_URL}/api/auth/register`, { firstName, lastName, email, password }),
+  register: (firstName, lastName, email, password, nickname) =>
+    axios.post(`${BASE_URL}/api/auth/register`, { firstName, lastName, email, password, nickname }),
   verifyEmail: (email, code) =>
     axios.post(`${BASE_URL}/api/auth/verify-email`, { email, code }),
   resendCode: (email) =>

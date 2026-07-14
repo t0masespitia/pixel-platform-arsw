@@ -32,7 +32,7 @@ function mapApiError(err) {
 }
 
 export default function LobbyPage() {
-  const { token, username, userId, logout, avatarUrl, firstName, lastName } = useAuth()
+  const { token, username, userId, logout, avatarUrl, firstName, lastName, nickname } = useAuth()
   const navigate = useNavigate()
   const { totalUnread } = useDirectMessages()
 
@@ -228,6 +228,7 @@ export default function LobbyPage() {
               <Avatar avatarUrl={avatarUrl} firstName={firstName} lastName={lastName} userId={userId} size="sm" />
               <span className="font-body text-xl text-secondary">
                 Hola, <span className="text-accent">{username}</span>
+                {nickname && <span className="text-secondary"> ({nickname})</span>}
               </span>
             </button>
             <button

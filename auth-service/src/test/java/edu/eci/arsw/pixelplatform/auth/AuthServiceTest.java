@@ -74,7 +74,8 @@ class AuthServiceTest {
                 "Test",
                 "User",
                 "test@example.com",
-                "Password123"
+                "Password123",
+                null
         );
 
         when(userRepository.existsByEmail("test@example.com"))
@@ -161,7 +162,8 @@ class AuthServiceTest {
                 "Test",
                 "User",
                 "test@example.com",
-                "Password123"
+                "Password123",
+                null
         );
 
         when(userRepository.existsByEmail("test@example.com"))

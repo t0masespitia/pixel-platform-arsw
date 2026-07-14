@@ -29,6 +29,7 @@ export function AuthProvider({ children }) {
   const [avatarUrl, setAvatarUrl] = useState(null)
   const [firstName, setFirstName] = useState(null)
   const [lastName, setLastName] = useState(null)
+  const [nickname, setNickname] = useState(null)
 
   useEffect(() => {
     const storedToken = localStorage.getItem('pp_token')
@@ -52,6 +53,7 @@ export function AuthProvider({ children }) {
       setFirstName(res.data.firstName || null)
       setLastName(res.data.lastName || null)
       setAvatarUrl(res.data.avatarUrl || null)
+      setNickname(res.data.nickname || null)
     } catch {
       // Si falla, el header simplemente sigue mostrando iniciales/username; no es crítico.
     }
@@ -76,8 +78,8 @@ export function AuthProvider({ children }) {
     return response.data
   }, [persistSession])
 
-  const register = useCallback(async (firstName, lastName, emailVal, password) => {
-    const response = await authApi.register(firstName, lastName, emailVal, password)
+  const register = useCallback(async (firstName, lastName, emailVal, password, nicknameVal) => {
+    const response = await authApi.register(firstName, lastName, emailVal, password, nicknameVal)
     return response.data
   }, [])
 
@@ -100,6 +102,7 @@ export function AuthProvider({ children }) {
     setAvatarUrl(null)
     setFirstName(null)
     setLastName(null)
+    setNickname(null)
     localStorage.removeItem('pp_token')
     localStorage.removeItem('pp_username')
   }, [])
@@ -113,6 +116,7 @@ export function AuthProvider({ children }) {
       avatarUrl,
       firstName,
       lastName,
+      nickname,
       refreshProfile,
       isAuthenticated: !!token,
       loading,

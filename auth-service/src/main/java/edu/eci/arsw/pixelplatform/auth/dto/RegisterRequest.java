@@ -11,5 +11,6 @@ public record RegisterRequest(
                 regexp = "^(?=.*[A-Z])(?=.*\\d).{8,}$",
                 message = "La contrasena debe tener minimo 8 caracteres, una mayuscula y un numero"
         )
-        String password
+        String password,
+        String nickname
 ) {}

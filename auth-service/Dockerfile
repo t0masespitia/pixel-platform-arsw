@@ -22,6 +22,7 @@ LABEL project="PixelPlatform ARSW 2026-1 - auth-service"
 RUN addgroup -S pixelapp && adduser -S pixelapp -G pixelapp
 WORKDIR /app
 COPY --from=builder /build/target/auth-service-0.0.1-SNAPSHOT.jar app.jar
+RUN mkdir -p /app/uploads/avatars && chown -R pixelapp:pixelapp /app
 USER pixelapp
 
 EXPOSE 8081
