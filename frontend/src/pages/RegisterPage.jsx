@@ -7,11 +7,12 @@ import Spinner from '../components/Spinner.jsx'
 
 const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/
 
-function validateClient(firstName, lastName, email, password) {
+function validateClient(firstName, lastName, email, password, confirmPassword) {
   if (!firstName) return 'El nombre es obligatorio.'
   if (!lastName) return 'El apellido es obligatorio.'
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Ingresa un email válido.'
   if (!PASSWORD_REGEX.test(password)) return 'La contraseña debe tener mínimo 8 caracteres, una mayúscula y un número.'
+  if (password !== confirmPassword) return 'Las contraseñas no coinciden.'
   return null
 }
 
@@ -32,18 +33,19 @@ export default function RegisterPage() {
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [nickname, setNickname] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const clientError = validateClient(firstName.trim(), lastName.trim(), email.trim(), password)
+    const clientError = validateClient(firstName.trim(), lastName.trim(), email.trim(), password, confirmPassword)
     if (clientError) { setError(clientError); return }
     setError('')
     setLoading(true)
     try {
-      await register(firstName.trim(), lastName.trim(), email.trim(), password, nickname.trim())
+      await register(firstName.trim(), lastName.trim(), email.trim(), password, confirmPassword, nickname.trim())
       navigate('/verify-email', { state: { email: email.trim() } })
     } catch (err) {
       setError(mapRegisterError(err))
@@ -106,7 +108,7 @@ export default function RegisterPage() {
               />
             </div>
 
-            <div className="mb-6">
+            <div className="mb-4">
               <label htmlFor="password" className="label-field">
                 Contraseña
                 <span className="ml-1 text-secondary font-body text-base normal-case">(mín. 8, 1 mayúscula, 1 número)</span>
@@ -116,6 +118,21 @@ export default function RegisterPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="input-field"
+                placeholder="••••••••"
+                autoComplete="new-password"
+                minLength={8}
+                required
+              />
+            </div>
+
+            <div className="mb-6">
+              <label htmlFor="confirmPassword" className="label-field">Confirmar contraseña</label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 className="input-field"
                 placeholder="••••••••"
                 autoComplete="new-password"

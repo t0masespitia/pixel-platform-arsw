@@ -71,22 +71,22 @@ export default function VoiceControls({
           <div className="flex gap-2">
             <button
               onClick={onToggleMute}
-              className={`btn-secondary flex-1 flex items-center justify-center gap-2 ${isMuted ? 'border-warning text-warning' : ''}`}
+              className={`btn-secondary flex-1 flex items-center justify-center ${isMuted ? 'border-warning text-warning' : ''}`}
               aria-label={isMuted ? 'Activar micrófono' : 'Silenciar micrófono'}
               aria-pressed={isMuted}
+              title={isMuted ? 'Activar micrófono' : 'Silenciar micrófono'}
             >
               {isMuted
-                ? <MicOff size={13} aria-hidden="true" />
-                : <Mic size={13} aria-hidden="true" />}
-              {isMuted ? 'Activar' : 'Silenciar'}
+                ? <MicOff size={18} aria-hidden="true" />
+                : <Mic size={18} aria-hidden="true" />}
             </button>
             <button
               onClick={onLeave}
-              className="btn-secondary flex items-center justify-center gap-2 px-3 border-destructive text-destructive hover:bg-destructive/10"
+              className="btn-secondary flex items-center justify-center px-3 border-destructive text-destructive hover:bg-destructive/10"
               aria-label="Salir de la sala de voz"
+              title="Salir de la sala de voz"
             >
-              <PhoneOff size={13} aria-hidden="true" />
-              Salir
+              <PhoneOff size={18} aria-hidden="true" />
             </button>
           </div>
         </div>

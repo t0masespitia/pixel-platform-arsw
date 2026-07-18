@@ -78,8 +78,8 @@ export function AuthProvider({ children }) {
     return response.data
   }, [persistSession])
 
-  const register = useCallback(async (firstName, lastName, emailVal, password, nicknameVal) => {
-    const response = await authApi.register(firstName, lastName, emailVal, password, nicknameVal)
+  const register = useCallback(async (firstName, lastName, emailVal, password, confirmPassword, nicknameVal) => {
+    const response = await authApi.register(firstName, lastName, emailVal, password, confirmPassword, nicknameVal)
     return response.data
   }, [])
 

@@ -10,6 +10,7 @@ export default function PixelCanvasGrid({ width, height, pixels, zoom, minZoom =
   const pendingScrollRef = useRef(null)
   const pinchStateRef = useRef(null)
   const frozenSizeRef = useRef(null)
+  const previousZoomRef = useRef(zoom)
   const hasReportedFitZoom = useRef(false)
   const dragStateRef = useRef(null)
   const hasDraggedRef = useRef(false)
@@ -38,6 +39,36 @@ export default function PixelCanvasGrid({ width, height, pixels, zoom, minZoom =
       onFitZoomReady(fitZoom)
     }
   }, [measuredSize, width, height, onFitZoomReady])
+
+  useLayoutEffect(() => {
+    const container = containerRef.current
+    const frozenSize = frozenSizeRef.current
+    const previousZoom = previousZoomRef.current
+
+    if (!container || !frozenSize || previousZoom === zoom) {
+      previousZoomRef.current = zoom
+      return
+    }
+
+    const oldCanvasWidth = width * previousZoom
+    const oldCanvasHeight = height * previousZoom
+    const newCanvasWidth = width * zoom
+    const newCanvasHeight = height * zoom
+    const oldPaddingX = Math.max(0, (frozenSize.width - oldCanvasWidth) / 2)
+    const oldPaddingY = Math.max(0, (frozenSize.height - oldCanvasHeight) / 2)
+    const newPaddingX = Math.max(0, (frozenSize.width - newCanvasWidth) / 2)
+    const newPaddingY = Math.max(0, (frozenSize.height - newCanvasHeight) / 2)
+    const centerX = container.scrollLeft + container.clientWidth / 2 - oldPaddingX
+    const centerY = container.scrollTop + container.clientHeight / 2 - oldPaddingY
+    const ratioX = oldCanvasWidth > 0 ? centerX / oldCanvasWidth : 0.5
+    const ratioY = oldCanvasHeight > 0 ? centerY / oldCanvasHeight : 0.5
+    const nextScrollLeft = newPaddingX + ratioX * newCanvasWidth - container.clientWidth / 2
+    const nextScrollTop = newPaddingY + ratioY * newCanvasHeight - container.clientHeight / 2
+
+    container.scrollLeft = Math.max(0, Math.min(nextScrollLeft, container.scrollWidth - container.clientWidth))
+    container.scrollTop = Math.max(0, Math.min(nextScrollTop, container.scrollHeight - container.clientHeight))
+    previousZoomRef.current = zoom
+  }, [zoom, width, height])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -182,21 +213,40 @@ export default function PixelCanvasGrid({ width, height, pixels, zoom, minZoom =
   // Una sola caja controla el marco. Antes de medir, se reserva espacio con
   // aspect-ratio para evitar un salto de layout. Despues de medir, el tamano
   // queda fijo en pixeles (frozenSizeRef) para siempre, sin importar el zoom.
+  //
+  // IMPORTANTE: el centrado NO se hace con flex/align-items en este
+  // contenedor (el que tiene overflow:auto). Centrar con flex un hijo que
+  // puede ser mas grande que el contenedor rompe el scroll: el navegador
+  // no permite scrollLeft/scrollTop negativos, asi que la mitad del
+  // contenido que "desborda" hacia arriba/izquierda queda inalcanzable
+  // (bug clasico de flexbox-centering + overflow). En vez de eso, el
+  // centrado se hace en un wrapper interno que siempre mide como minimo
+  // lo mismo que el contenedor visible, y crece exactamente al tamano del
+  // canvas cuando el zoom lo hace mas grande - asi el contenedor externo
+  // scrollea ese wrapper con flujo normal (sin alineacion), y nunca hay
+  // contenido centrado fuera de rango de scroll.
   const containerStyle = frozenSizeRef.current
     ? {
         overflow: 'auto',
         width: `${frozenSizeRef.current.width}px`,
         height: `${frozenSizeRef.current.height}px`,
         touchAction: 'pan-x pan-y',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
       }
     : {
         width: '100%',
         maxWidth: `${MAX_VIEWPORT_SIZE}px`,
         aspectRatio: '2 / 1',
       }
+
+  const innerWrapperStyle = frozenSizeRef.current
+    ? {
+        width: `${Math.max(canvasWidth, frozenSizeRef.current.width)}px`,
+        height: `${Math.max(canvasHeight, frozenSizeRef.current.height)}px`,
+        boxSizing: 'border-box',
+        paddingLeft: `${Math.max(0, (frozenSizeRef.current.width - canvasWidth) / 2)}px`,
+        paddingTop: `${Math.max(0, (frozenSizeRef.current.height - canvasHeight) / 2)}px`,
+      }
+    : null
 
   return (
     <div
@@ -210,21 +260,23 @@ export default function PixelCanvasGrid({ width, height, pixels, zoom, minZoom =
       style={containerStyle}
     >
       {frozenSizeRef.current && zoom && (
-        <canvas
-          ref={canvasRef}
-          onClick={handleClick}
-          style={{
-            cursor: isDragging ? 'grabbing' : disabled ? 'not-allowed' : 'crosshair',
-            imageRendering: 'pixelated',
-            display: 'block',
-            flexShrink: 0,
-            width: `${canvasWidth}px`,
-            height: `${canvasHeight}px`,
-            border: '1px solid #6D3FA0',
-          }}
-          aria-label={`Lienzo de píxeles ${width}×${height}. ${disabled ? 'Painting deshabilitado durante cooldown.' : 'Haz clic para pintar.'}`}
-          role="img"
-        />
+        <div style={innerWrapperStyle}>
+          <canvas
+            ref={canvasRef}
+            onClick={handleClick}
+            style={{
+              cursor: isDragging ? 'grabbing' : disabled ? 'not-allowed' : 'crosshair',
+              imageRendering: 'pixelated',
+              display: 'block',
+              flexShrink: 0,
+              width: `${canvasWidth}px`,
+              height: `${canvasHeight}px`,
+              border: '1px solid #6D3FA0',
+            }}
+            aria-label={`Lienzo de píxeles ${width}×${height}. ${disabled ? 'Painting deshabilitado durante cooldown.' : 'Haz clic para pintar.'}`}
+            role="img"
+          />
+        </div>
       )}
     </div>
   )

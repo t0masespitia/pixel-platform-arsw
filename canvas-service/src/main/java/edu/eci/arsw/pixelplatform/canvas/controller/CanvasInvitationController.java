@@ -57,7 +57,8 @@ public class CanvasInvitationController {
                     "El usuario del token no coincide con el userId de la peticion"));
         }
         try {
-            return ResponseEntity.ok(canvasInvitationService.respondToInvitation(canvasId, invitationId, request));
+            String authHeader = httpRequest.getHeader("Authorization");
+            return ResponseEntity.ok(canvasInvitationService.respondToInvitation(canvasId, invitationId, request, authHeader));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -99,7 +100,8 @@ public class CanvasInvitationController {
                     "El usuario del token no coincide con el userId de la peticion"));
         }
         try {
-            CanvasResponse response = canvasInvitationService.joinCanvas(request);
+            String authHeader = httpRequest.getHeader("Authorization");
+            CanvasResponse response = canvasInvitationService.joinCanvas(request, authHeader);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -169,7 +171,8 @@ public class CanvasInvitationController {
                     "El usuario del token no coincide con el userId de la peticion"));
         }
         try {
-            canvasInvitationService.cancelInvitation(canvasId, invitationId, requesterId);
+            String authHeader = httpRequest.getHeader("Authorization");
+            canvasInvitationService.cancelInvitation(canvasId, invitationId, requesterId, authHeader);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

@@ -75,6 +75,7 @@ class AuthServiceTest {
                 "User",
                 "test@example.com",
                 "Password123",
+                "Password123",
                 null
         );
 
@@ -163,6 +164,7 @@ class AuthServiceTest {
                 "User",
                 "test@example.com",
                 "Password123",
+                "Password123",
                 null
         );
 
@@ -184,6 +186,28 @@ class AuthServiceTest {
 
         verify(jwtService, never())
                 .generateToken(any(User.class));
+    }
+
+    @Test
+    void registroConConfirmacionDiferente_debeLanzarExcepcion() {
+        RegisterRequest request = new RegisterRequest(
+                "Test",
+                "User",
+                "test@example.com",
+                "Password123",
+                "Password124",
+                null
+        );
+
+        assertThatThrownBy(() -> authService.register(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Las contrasenas no coinciden");
+
+        verify(userRepository, never())
+                .save(any(User.class));
+
+        verify(emailService, never())
+                .sendVerificationCode(any(), any());
     }
 
     @Test

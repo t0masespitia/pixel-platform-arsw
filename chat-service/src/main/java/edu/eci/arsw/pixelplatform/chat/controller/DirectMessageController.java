@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/messages")
@@ -66,5 +68,18 @@ public class DirectMessageController {
             HttpServletRequest httpRequest) {
         String userId = (String) httpRequest.getAttribute("verifiedUserId");
         return ResponseEntity.ok(directMessageService.getConversation(userId, otherUserId));
+    }
+
+    @DeleteMapping("/canvas-invitation/{invitationId}")
+    public ResponseEntity<Void> deleteCanvasInvitationMessages(
+            @PathVariable UUID invitationId,
+            HttpServletRequest httpRequest) {
+        String userId = (String) httpRequest.getAttribute("verifiedUserId");
+        try {
+            directMessageService.deleteInvitationMessages(userId, invitationId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(403).build();
+        }
     }
 }

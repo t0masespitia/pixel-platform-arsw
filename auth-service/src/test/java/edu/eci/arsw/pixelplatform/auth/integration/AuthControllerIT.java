@@ -66,7 +66,7 @@ class AuthControllerIT {
     }
 
     private RegisterRequest nuevoRegistro(String email) {
-        return new RegisterRequest("Tomas", "Espitia", email, "ClaveSegura123", null);
+        return new RegisterRequest("Tomas", "Espitia", email, "ClaveSegura123", "ClaveSegura123", null);
     }
 
     @Test

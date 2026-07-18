@@ -13,4 +13,6 @@ public interface DirectMessageRepository extends JpaRepository<DirectMessage, UU
     @Query("SELECT m FROM DirectMessage m WHERE (m.fromUserId = :userA AND m.toUserId = :userB) " +
            "OR (m.fromUserId = :userB AND m.toUserId = :userA) ORDER BY m.sentAt ASC")
     List<DirectMessage> findConversation(@Param("userA") String userA, @Param("userB") String userB);
+
+    List<DirectMessage> findByInvitationId(UUID invitationId);
 }

@@ -17,7 +17,7 @@ function formatTime(ts) {
 }
 
 export default function MessagesPanel({ currentUserId, token }) {
-  const { conversations, unreadCounts, loadConversation, clearActiveConversation, sendMessage } =
+  const { conversations, unreadCounts, loadConversation, clearActiveConversation, sendMessage, removeInvitationMessage } =
     useDirectMessages()
 
   const [users, setUsers] = useState([])
@@ -84,13 +84,14 @@ export default function MessagesPanel({ currentUserId, token }) {
         delete next[invitationId]
         return next
       })
+      removeInvitationMessage(invitationId)
     } catch (err) {
       setRespondError(err.response?.data?.error || err.response?.data?.message || 'Error al responder la invitación.')
       setRespondErrorInvitationId(invitationId)
     } finally {
       setRespondingInvitationId(null)
     }
-  }, [currentUserId, token, pendingInvitations])
+  }, [currentUserId, token, pendingInvitations, removeInvitationMessage])
 
   const handleCopyInvitationCode = useCallback(async (invitationId, code) => {
     try {

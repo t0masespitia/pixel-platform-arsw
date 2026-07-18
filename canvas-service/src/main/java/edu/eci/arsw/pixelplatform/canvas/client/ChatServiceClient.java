@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -51,6 +52,22 @@ public class ChatServiceClient {
             String canvasName, UUID invitationId, String content, Throwable t) {
         log.warn("Circuit breaker 'chatService' activo en sendInvitationMessage (toUserId={}): {}",
                 toUserId, t.getMessage());
+        throw new RuntimeException("chat-service no disponible: " + t.getMessage(), t);
+    }
+
+    @CircuitBreaker(name = "chatService", fallbackMethod = "deleteInvitationMessagesFallback")
+    @Retry(name = "chatService")
+    public void deleteInvitationMessages(String authHeader, UUID invitationId) {
+        String url = chatServiceBaseUrl + "/api/messages/canvas-invitation/" + invitationId;
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", authHeader);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+        restTemplate.exchange(url, HttpMethod.DELETE, entity, Void.class);
+    }
+
+    private void deleteInvitationMessagesFallback(String authHeader, UUID invitationId, Throwable t) {
+        log.warn("Circuit breaker 'chatService' activo en deleteInvitationMessages (invitationId={}): {}",
+                invitationId, t.getMessage());
         throw new RuntimeException("chat-service no disponible: " + t.getMessage(), t);
     }
 }

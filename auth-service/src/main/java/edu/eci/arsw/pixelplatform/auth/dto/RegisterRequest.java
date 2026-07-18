@@ -12,5 +12,6 @@ public record RegisterRequest(
                 message = "La contrasena debe tener minimo 8 caracteres, una mayuscula y un numero"
         )
         String password,
+        @NotBlank String confirmPassword,
         String nickname
 ) {}

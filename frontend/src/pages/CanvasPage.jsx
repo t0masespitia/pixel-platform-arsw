@@ -33,6 +33,13 @@ function formatDate(dateStr) {
   })
 }
 
+function displayCreatorName(profile, ownerId) {
+  if (!ownerId) return 'PixelPlatform'
+  if (!profile) return `Usuario ${ownerId}`
+  const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim()
+  return fullName || profile.username || `Usuario ${ownerId}`
+}
+
 function ConnectionBadge({ status }) {
   const configs = {
     connecting:   { icon: <Loader size={13} className="animate-spin" />, label: 'Conectando...', color: 'text-warning border-warning bg-warning/10' },
@@ -64,6 +71,7 @@ function CanvasEditor({ canvas, id, userId, token }) {
   const [cooldownUntil, setCooldownUntil] = useState(0)
   const [timeLeft, setTimeLeft] = useState(0)
   const [userDirectory, setUserDirectory] = useState({})
+  const [creatorProfile, setCreatorProfile] = useState(null)
   const [sidebarTab, setSidebarTab] = useState('chat')
   const { totalUnread } = useDirectMessages()
 
@@ -76,6 +84,18 @@ function CanvasEditor({ canvas, id, userId, token }) {
       })
       .catch(() => {})
   }, [token])
+
+  useEffect(() => {
+    if (!canvas.ownerId) {
+      setCreatorProfile(null)
+      return
+    }
+    let cancelled = false
+    authApi.getUserProfile(canvas.ownerId, token)
+      .then((res) => { if (!cancelled) setCreatorProfile(res.data) })
+      .catch(() => { if (!cancelled) setCreatorProfile(null) })
+    return () => { cancelled = true }
+  }, [canvas.ownerId, token])
   const pixelsRef = useRef(pixels)
   const optimisticTimersRef = useRef({})
 
@@ -250,6 +270,9 @@ function CanvasEditor({ canvas, id, userId, token }) {
                 ? <Lock size={12} className="text-warning" aria-hidden="true" />
                 : <Globe size={12} className="text-success" aria-hidden="true" />}
               {canvas.isPrivate ? 'Privado' : 'Público'}
+            </span>
+            <span>
+              Creado por {displayCreatorName(creatorProfile, canvas.ownerId)}
             </span>
           </div>
         </div>

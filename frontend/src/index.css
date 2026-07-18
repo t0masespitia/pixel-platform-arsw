@@ -51,7 +51,7 @@
     @apply bg-accent text-white font-heading text-xs px-3 py-2
            cursor-pointer transition-all duration-200
            hover:shadow-accent-lg hover:scale-105
-           focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background
            disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-none;
     border: 2px solid #EC4899;
     image-rendering: pixelated;
@@ -61,7 +61,7 @@
     @apply bg-muted text-foreground font-heading text-xs px-3 py-2
            cursor-pointer transition-all duration-200 border border-border
            hover:border-accent hover:text-accent
-           focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
@@ -69,7 +69,7 @@
     @apply bg-transparent text-foreground font-body text-lg px-2.5 py-1
            cursor-pointer transition-all duration-150 border border-transparent
            hover:border-border hover:bg-muted
-           focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 focus:ring-offset-background;
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-background;
   }
 
   .input-field {

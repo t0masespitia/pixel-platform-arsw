@@ -86,4 +86,41 @@ class DirectMessageServiceTest {
 
         verify(directMessageRepository).findConversation(USER_B, USER_A);
     }
+
+    @Test
+    void deleteInvitationMessages_borraMensajesSiUsuarioParticipa() {
+        UUID invitationId = UUID.randomUUID();
+        DirectMessage msg = DirectMessage.builder()
+                .id(UUID.randomUUID())
+                .fromUserId(USER_A)
+                .toUserId(USER_B)
+                .content("invitacion")
+                .sentAt(Instant.now())
+                .invitationId(invitationId)
+                .build();
+        when(directMessageRepository.findByInvitationId(invitationId)).thenReturn(List.of(msg));
+
+        service.deleteInvitationMessages(USER_B, invitationId);
+
+        verify(directMessageRepository).deleteAll(List.of(msg));
+    }
+
+    @Test
+    void deleteInvitationMessages_rechazaUsuarioAjeno() {
+        UUID invitationId = UUID.randomUUID();
+        DirectMessage msg = DirectMessage.builder()
+                .id(UUID.randomUUID())
+                .fromUserId(USER_A)
+                .toUserId(USER_B)
+                .content("invitacion")
+                .sentAt(Instant.now())
+                .invitationId(invitationId)
+                .build();
+        when(directMessageRepository.findByInvitationId(invitationId)).thenReturn(List.of(msg));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                service.deleteInvitationMessages("3", invitationId));
+
+        verify(directMessageRepository, never()).deleteAll(any());
+    }
 }

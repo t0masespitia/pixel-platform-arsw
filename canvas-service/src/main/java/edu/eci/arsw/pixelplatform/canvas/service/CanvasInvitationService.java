@@ -80,6 +80,7 @@ public class CanvasInvitationService {
             if (inv.getStatus() == InvitationStatus.PENDING) {
                 throw new IllegalArgumentException("Ya existe una invitacion pendiente para este usuario");
             }
+            deleteInvitationMessageIfPresent(authHeader, inv.getId());
             inv.setCode(generateUniqueCode());
             inv.setStatus(InvitationStatus.PENDING);
             inv.setRespondedAt(null);
@@ -105,11 +106,8 @@ public class CanvasInvitationService {
                     "'. Utiliza el siguiente codigo para unirte: " + invitation.getCode() + ".";
             chatServiceClient.sendInvitationMessage(authHeader, request.targetUserId(), canvasId,
                     canvas.getName(), invitation.getId(), content);
-            String joinLink = frontendBaseUrl + "/join?code=" + invitation.getCode();
-            authServiceClient.sendInvitationEmail(authHeader, request.targetUserId(), inviterName,
-                    canvas.getName(), invitation.getCode(), joinLink);
         } catch (Exception e) {
-            log.warn("No se pudo notificar la invitacion (chat/correo) para canvasId={} targetUserId={}: {}",
+            log.warn("No se pudo notificar la invitacion por chat para canvasId={} targetUserId={}: {}",
                     canvasId, request.targetUserId(), e.getMessage());
         }
 
@@ -117,7 +115,7 @@ public class CanvasInvitationService {
     }
 
     public InvitationResponse respondToInvitation(UUID canvasId, UUID invitationId,
-            RespondInvitationRequest request) {
+            RespondInvitationRequest request, String authHeader) {
         CanvasInvitation invitation = canvasInvitationRepository.findById(invitationId)
                 .orElseThrow(() -> new IllegalArgumentException("Invitacion no encontrada"));
         if (!invitation.getCanvasId().equals(canvasId)) {
@@ -145,6 +143,7 @@ public class CanvasInvitationService {
         }
         invitation.setRespondedAt(Instant.now());
         canvasInvitationRepository.save(invitation);
+        deleteInvitationMessageIfPresent(authHeader, invitation.getId());
         return toInvitationResponse(invitation);
     }
 
@@ -171,7 +170,7 @@ public class CanvasInvitationService {
                 .collect(Collectors.toList());
     }
 
-    public CanvasResponse joinCanvas(JoinCanvasRequest request) {
+    public CanvasResponse joinCanvas(JoinCanvasRequest request, String authHeader) {
         CanvasInvitation invitation = canvasInvitationRepository.findByCode(request.code())
                 .orElseThrow(() -> new IllegalArgumentException("Codigo invalido"));
         if (!invitation.getTargetUserId().equals(request.userId())) {
@@ -192,6 +191,7 @@ public class CanvasInvitationService {
                     .build();
             canvasMembershipRepository.save(membership);
         }
+        deleteInvitationMessageIfPresent(authHeader, invitation.getId());
         return canvasService.getCanvas(invitation.getCanvasId());
     }
 
@@ -238,7 +238,7 @@ public class CanvasInvitationService {
         canvasMembershipRepository.delete(membership);
     }
 
-    public void cancelInvitation(UUID canvasId, UUID invitationId, String requesterId) {
+    public void cancelInvitation(UUID canvasId, UUID invitationId, String requesterId, String authHeader) {
         Canvas canvas = canvasRepository.findById(canvasId)
                 .orElseThrow(() -> new IllegalArgumentException("Lienzo no encontrado"));
         if (!requesterId.equals(canvas.getOwnerId())) {
@@ -252,7 +252,17 @@ public class CanvasInvitationService {
         if (invitation.getStatus() != InvitationStatus.PENDING) {
             throw new IllegalArgumentException("Solo se pueden cancelar invitaciones pendientes");
         }
+        deleteInvitationMessageIfPresent(authHeader, invitation.getId());
         canvasInvitationRepository.delete(invitation);
+    }
+
+    private void deleteInvitationMessageIfPresent(String authHeader, UUID invitationId) {
+        try {
+            chatServiceClient.deleteInvitationMessages(authHeader, invitationId);
+        } catch (Exception e) {
+            log.warn("No se pudo eliminar el mensaje de invitacion invitationId={}: {}",
+                    invitationId, e.getMessage());
+        }
     }
 
     private InvitationResponse toInvitationResponse(CanvasInvitation invitation) {

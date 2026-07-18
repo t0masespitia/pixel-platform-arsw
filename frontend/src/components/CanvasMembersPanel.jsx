@@ -22,9 +22,8 @@ function displayName(profile, userId) {
 
 function resolveActionState(targetUserId, members, invitations) {
   if (members.some((m) => m.userId === targetUserId)) return 'member'
-  const inv = invitations.find((i) => i.targetUserId === targetUserId)
-  if (inv?.status === 'PENDING') return 'pending'
-  if (inv?.status === 'REJECTED') return 'rejected'
+  if (invitations.some((i) => i.targetUserId === targetUserId && i.status === 'PENDING')) return 'pending'
+  if (invitations.some((i) => i.targetUserId === targetUserId && i.status === 'REJECTED')) return 'rejected'
   return 'none'
 }
 
@@ -247,11 +246,11 @@ export default function CanvasMembersPanel({ canvasId, requesterId, token }) {
               ¿Expulsar a <span className="text-destructive">{confirmExpelName}</span>?
             </p>
             <ErrorMessage message={expelError} />
-            <div className="flex gap-2">
+            <div className="flex gap-1.5">
               <button
                 onClick={handleConfirmExpel}
                 disabled={expelLoading}
-                className="btn-primary flex items-center gap-2 bg-destructive border-destructive hover:shadow-none"
+                className="btn-primary flex-1 min-w-0 flex items-center justify-center gap-1 bg-destructive border-destructive hover:shadow-none !px-2 !py-1 text-[10px] leading-tight"
               >
                 {expelLoading && <Spinner size="sm" />}
                 Expulsar
@@ -259,7 +258,7 @@ export default function CanvasMembersPanel({ canvasId, requesterId, token }) {
               <button
                 onClick={() => { setConfirmExpelId(null); setExpelError('') }}
                 disabled={expelLoading}
-                className="btn-secondary"
+                className="btn-secondary flex-1 min-w-0 !px-2 !py-1 text-[10px] leading-tight"
               >
                 Cancelar
               </button>
@@ -321,7 +320,7 @@ export default function CanvasMembersPanel({ canvasId, requesterId, token }) {
             {directoryResult.users.map((u) => {
               const state = resolveActionState(u.userId, members, invitations)
               const isLoading = inviteLoadingUserId === u.userId
-              const pendingInvitation = invitations.find((i) => i.targetUserId === u.userId)
+              const pendingInvitation = invitations.find((i) => i.targetUserId === u.userId && i.status === 'PENDING')
               return (
                 <li key={u.userId} className="flex items-center gap-2 py-1.5 border-b border-border last:border-0">
                   <Avatar avatarUrl={u.avatarUrl} firstName={u.firstName} lastName={u.lastName} userId={u.userId} size="sm" />
@@ -336,7 +335,12 @@ export default function CanvasMembersPanel({ canvasId, requesterId, token }) {
                   )}
                   {state === 'pending' && (
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      <span className="font-heading text-xs text-warning px-2 py-1">Invitación enviada</span>
+                      <span
+                        className="font-heading text-xs text-warning px-1.5 py-1 whitespace-nowrap"
+                        title="Invitación enviada"
+                      >
+                        Enviada
+                      </span>
                       <button
                         onClick={() => handleCancelInvitation(pendingInvitation)}
                         disabled={cancelingInvitationId === pendingInvitation?.id}
@@ -352,20 +356,22 @@ export default function CanvasMembersPanel({ canvasId, requesterId, token }) {
                     <button
                       onClick={() => handleInvite(u.userId)}
                       disabled={isLoading}
-                      className="btn-secondary flex-shrink-0 flex items-center gap-1 text-xs px-2 py-1"
+                      className="btn-secondary flex-shrink-0 flex items-center justify-center p-1.5"
+                      aria-label={`Reenviar invitación a ${u.username}`}
+                      title="Reenviar invitación"
                     >
-                      {isLoading ? <Spinner size="sm" /> : <RotateCcw size={12} aria-hidden="true" />}
-                      Reenviar
+                      {isLoading ? <Spinner size="sm" /> : <RotateCcw size={14} aria-hidden="true" />}
                     </button>
                   )}
                   {state === 'none' && (
                     <button
                       onClick={() => handleInvite(u.userId)}
                       disabled={isLoading}
-                      className="btn-primary flex-shrink-0 flex items-center gap-1 text-xs px-2 py-1"
+                      className="btn-primary flex-shrink-0 flex items-center justify-center p-1.5"
+                      aria-label={`Invitar a ${u.username}`}
+                      title="Invitar"
                     >
-                      {isLoading ? <Spinner size="sm" /> : <UserPlus size={12} aria-hidden="true" />}
-                      Invitar
+                      {isLoading ? <Spinner size="sm" /> : <UserPlus size={14} aria-hidden="true" />}
                     </button>
                   )}
                   {inviteErrorUserId === u.userId && (

@@ -31,10 +31,17 @@ function mapApiError(err) {
     || 'Error inesperado.'
 }
 
+function displayCreatorName(profile, ownerId) {
+  if (!ownerId) return 'PixelPlatform'
+  if (!profile) return `Usuario ${ownerId}`
+  const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim()
+  return fullName || profile.username || `Usuario ${ownerId}`
+}
+
 export default function LobbyPage() {
   const { token, username, userId, logout, avatarUrl, firstName, lastName, nickname } = useAuth()
   const navigate = useNavigate()
-  const { totalUnread } = useDirectMessages()
+  const { totalUnread, removeInvitationMessage } = useDirectMessages()
 
   const [myCanvases, setMyCanvases] = useState([])
   const [canvasesLoading, setCanvasesLoading] = useState(true)
@@ -73,7 +80,20 @@ export default function LobbyPage() {
     setCanvasesError('')
     try {
       const res = await canvasApi.getByOwner(userId, token)
-      setMyCanvases(res.data)
+      const canvases = res.data
+      const ownerIds = [...new Set(canvases.map((canvas) => canvas.ownerId).filter(Boolean))]
+      const profileEntries = await Promise.all(
+        ownerIds.map((ownerId) =>
+          authApi.getUserProfile(ownerId, token)
+            .then((profileRes) => [ownerId, profileRes.data])
+            .catch(() => [ownerId, null])
+        )
+      )
+      const profileMap = Object.fromEntries(profileEntries)
+      setMyCanvases(canvases.map((canvas) => ({
+        ...canvas,
+        ownerProfile: profileMap[canvas.ownerId] || null,
+      })))
     } catch (err) {
       setCanvasesError(mapApiError(err))
     } finally {
@@ -86,7 +106,20 @@ export default function LobbyPage() {
     setSharedError('')
     try {
       const res = await canvasApi.getShared(userId, token)
-      setSharedCanvases(res.data)
+      const canvases = res.data
+      const ownerIds = [...new Set(canvases.map((canvas) => canvas.ownerId).filter(Boolean))]
+      const profileEntries = await Promise.all(
+        ownerIds.map((ownerId) =>
+          authApi.getUserProfile(ownerId, token)
+            .then((profileRes) => [ownerId, profileRes.data])
+            .catch(() => [ownerId, null])
+        )
+      )
+      const profileMap = Object.fromEntries(profileEntries)
+      setSharedCanvases(canvases.map((canvas) => ({
+        ...canvas,
+        ownerProfile: profileMap[canvas.ownerId] || null,
+      })))
     } catch (err) {
       setSharedError(mapApiError(err))
     } finally {
@@ -204,6 +237,7 @@ export default function LobbyPage() {
     setRespondError('')
     try {
       await canvasApi.respondToInvitation(invitation.canvasId, invitation.id, userId, accept, token)
+      removeInvitationMessage(invitation.id)
       await fetchPendingInvitations()
       if (accept) await fetchSharedCanvases()
     } catch (err) {
@@ -362,6 +396,9 @@ export default function LobbyPage() {
                           <Clock size={12} aria-hidden="true" />
                           {formatDate(canvas.createdAt)}
                         </span>
+                        <span className="font-body text-base text-secondary">
+                          Creado por {displayCreatorName(canvas.ownerProfile, canvas.ownerId)}
+                        </span>
                       </div>
                     </div>
                     <div className="mt-2 pt-2 border-t border-border flex justify-end">
@@ -481,6 +518,9 @@ export default function LobbyPage() {
                       <span className="font-body text-base text-secondary flex items-center gap-1">
                         <Grid size={12} aria-hidden="true" />
                         {canvas.width} × {canvas.height} px
+                      </span>
+                      <span className="font-body text-base text-secondary">
+                        Creado por {displayCreatorName(canvas.ownerProfile, canvas.ownerId)}
                       </span>
                     </div>
                   </div>

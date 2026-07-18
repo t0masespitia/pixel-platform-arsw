@@ -55,6 +55,10 @@ public class AuthService {
     }
 
     public RegisterResponse register(RegisterRequest request) {
+        if (!request.password().equals(request.confirmPassword())) {
+            throw new IllegalArgumentException("Las contrasenas no coinciden");
+        }
+
         if (userRepository.existsByEmail(request.email())) {
             throw new IllegalArgumentException("El correo ya esta registrado");
         }

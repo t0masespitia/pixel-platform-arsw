@@ -131,6 +131,16 @@ export function DirectMessagesProvider({ children }) {
     return res.data
   }, [token])
 
+  const removeInvitationMessage = useCallback((invitationId) => {
+    setConversations((prev) => {
+      const next = {}
+      Object.entries(prev).forEach(([otherUserId, messages]) => {
+        next[otherUserId] = messages.filter((msg) => msg.invitationId !== invitationId)
+      })
+      return next
+    })
+  }, [])
+
   const totalUnread = Object.values(unreadCounts).reduce((sum, n) => sum + n, 0)
 
   return (
@@ -142,6 +152,7 @@ export function DirectMessagesProvider({ children }) {
       loadConversation,
       clearActiveConversation,
       sendMessage,
+      removeInvitationMessage,
     }}>
       {children}
     </DirectMessagesContext.Provider>

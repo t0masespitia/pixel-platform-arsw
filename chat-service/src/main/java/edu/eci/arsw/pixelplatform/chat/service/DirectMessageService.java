@@ -58,6 +58,16 @@ public class DirectMessageService {
                 .toList();
     }
 
+    public void deleteInvitationMessages(String requesterId, UUID invitationId) {
+        List<DirectMessage> messages = directMessageRepository.findByInvitationId(invitationId);
+        boolean authorized = messages.stream()
+                .allMatch(msg -> requesterId.equals(msg.getFromUserId()) || requesterId.equals(msg.getToUserId()));
+        if (!authorized) {
+            throw new IllegalArgumentException("No autorizado para eliminar esta invitacion");
+        }
+        directMessageRepository.deleteAll(messages);
+    }
+
     private DirectMessageResponse toResponse(DirectMessage msg) {
         return new DirectMessageResponse(
                 msg.getId(),
