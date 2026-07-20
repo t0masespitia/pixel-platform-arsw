@@ -47,6 +47,7 @@ jobs:
         service:
           - auth-service
           - canvas-service
+          - chat-service
     steps:
       - uses: actions/checkout@v4
 
