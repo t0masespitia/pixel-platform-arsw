@@ -46,6 +46,7 @@ jobs:
       matrix:
         service:
           - auth-service
+          - canvas-service
     steps:
       - uses: actions/checkout@v4
 
