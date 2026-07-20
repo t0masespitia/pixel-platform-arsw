@@ -2,6 +2,7 @@ services:
 
   postgres:
     image: postgres:16-alpine
+    mem_limit: 350m
     restart: unless-stopped
     environment:
       POSTGRES_USER: pixel_user
@@ -20,6 +21,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    mem_limit: 300m
     restart: unless-stopped
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
@@ -36,6 +38,7 @@ services:
     build:
       context: ./auth-service
       dockerfile: Dockerfile
+    mem_limit: 320m
     restart: unless-stopped
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_db
@@ -65,6 +68,7 @@ services:
     build:
       context: ./canvas-service
       dockerfile: Dockerfile
+    mem_limit: 450m
     restart: unless-stopped
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/canvas_db
@@ -97,6 +101,7 @@ services:
     build:
       context: ./chat-service
       dockerfile: Dockerfile
+    mem_limit: 300m
     restart: unless-stopped
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/chat_db
@@ -117,6 +122,7 @@ services:
     build:
       context: ./signaling-service
       dockerfile: Dockerfile
+    mem_limit: 250m
     restart: unless-stopped
     environment:
       CANVAS_SERVICE_BASE_URL: http://canvas-service:8082
@@ -132,6 +138,7 @@ services:
     build:
       context: ./ai-service
       dockerfile: Dockerfile
+    mem_limit: 300m
     restart: unless-stopped
     environment:
       CANVAS_SERVICE_BASE_URL: http://canvas-service:8082
@@ -147,6 +154,7 @@ services:
     build:
       context: ./api-gateway
       dockerfile: Dockerfile
+    mem_limit: 300m
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: docker
@@ -175,10 +183,12 @@ services:
         VITE_CANVAS_SERVICE_URL: ""
         VITE_CHAT_SERVICE_URL: ""
         VITE_SIGNALING_SERVICE_URL: ""
+    mem_limit: 48m
     restart: unless-stopped
 
   nginx:
     image: nginx:alpine
+    mem_limit: 48m
     restart: unless-stopped
     ports:
       - "80:80"
