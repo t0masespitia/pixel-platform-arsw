@@ -219,8 +219,12 @@ class CanvasControllerIT {
 
     @Test
     void endpointProtegidoSinTokenDeberiaDar401() {
-        ResponseEntity<Map> response = restTemplate.postForEntity(
-                "/api/canvases", new CreateCanvasRequest("Sin token", 64, 64, "owner-9"), Map.class);
+        // GET sin body: si se hace con POST+body, el filtro corta la respuesta
+        // antes de que el cliente termine de mandar el body y Tomcat puede
+        // resetear la conexion (ResourceAccessException) en vez de dar un 401
+        // limpio. Con GET no hay ese problema.
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/canvases/general", HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), Map.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }

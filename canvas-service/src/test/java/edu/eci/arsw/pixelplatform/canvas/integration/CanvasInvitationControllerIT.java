@@ -201,12 +201,20 @@ class CanvasInvitationControllerIT {
         ResponseEntity<InvitationResponse[]> ok = restTemplate.exchange(
                 "/api/canvases/" + canvas.id() + "/invitations?requesterId=dueno-9",
                 HttpMethod.GET, new HttpEntity<>(headersFor("dueno-9")), InvitationResponse[].class);
-        ResponseEntity<Map> forbidden = restTemplate.exchange(
+
+        // Token valido, pero de alguien que no es el dueno -> regla de negocio (400)
+        ResponseEntity<Map> noEsDueno = restTemplate.exchange(
                 "/api/canvases/" + canvas.id() + "/invitations?requesterId=otro",
                 HttpMethod.GET, new HttpEntity<>(headersFor("otro")), Map.class);
 
+        // El requesterId no coincide con el usuario del token -> 403
+        ResponseEntity<Map> tokenNoCoincide = restTemplate.exchange(
+                "/api/canvases/" + canvas.id() + "/invitations?requesterId=otro",
+                HttpMethod.GET, new HttpEntity<>(headersFor("impostor")), Map.class);
+
         assertThat(ok.getBody()).hasSize(1);
-        assertThat(forbidden.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(noEsDueno.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(tokenNoCoincide.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
@@ -329,14 +337,22 @@ class CanvasInvitationControllerIT {
         CanvasResponse canvas = crearLienzoPrivado("dueno-17");
         InvitationResponse invitacion = invitar(canvas.id().toString(), "dueno-17", "invitado-17");
 
-        ResponseEntity<Map> forbidden = restTemplate.exchange(
+        // Token valido, pero de alguien que no es el dueno -> regla de negocio (400)
+        ResponseEntity<Map> noEsDueno = restTemplate.exchange(
                 "/api/canvases/" + canvas.id() + "/invitations/" + invitacion.id() + "?requesterId=otro",
                 HttpMethod.DELETE, new HttpEntity<>(headersFor("otro")), Map.class);
+
+        // El requesterId no coincide con el usuario del token -> 403
+        ResponseEntity<Map> tokenNoCoincide = restTemplate.exchange(
+                "/api/canvases/" + canvas.id() + "/invitations/" + invitacion.id() + "?requesterId=otro",
+                HttpMethod.DELETE, new HttpEntity<>(headersFor("impostor")), Map.class);
+
         ResponseEntity<Void> cancelada = restTemplate.exchange(
                 "/api/canvases/" + canvas.id() + "/invitations/" + invitacion.id() + "?requesterId=dueno-17",
                 HttpMethod.DELETE, new HttpEntity<>(headersFor("dueno-17")), Void.class);
 
-        assertThat(forbidden.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(noEsDueno.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(tokenNoCoincide.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(cancelada.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
         assertThat(canvasInvitationRepository.findById(invitacion.id())).isEmpty();
     }
