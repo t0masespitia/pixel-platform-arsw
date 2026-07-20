@@ -12,6 +12,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
+    mem_limit: 200m
 
   grafana:
     image: grafana/grafana:latest
@@ -28,6 +29,7 @@ services:
       - prometheus
       - loki
     restart: unless-stopped
+    mem_limit: 200m
 
   loki:
     image: grafana/loki:latest
@@ -38,6 +40,7 @@ services:
       - ./loki/loki-config.yml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki
     restart: unless-stopped
+    mem_limit: 300m
 
   promtail:
     image: grafana/promtail:latest
@@ -53,6 +56,7 @@ services:
     depends_on:
       - loki
     restart: unless-stopped
+    mem_limit: 150m
 
 volumes:
   prometheus_data:

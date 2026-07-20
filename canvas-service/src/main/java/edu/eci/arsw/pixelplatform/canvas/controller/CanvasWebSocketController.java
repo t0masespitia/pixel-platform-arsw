@@ -47,13 +47,13 @@ public class CanvasWebSocketController {
             log.warn("WebSocket userId mismatch canvas={} token={} command={}", canvasId, verifiedUserId, command.userId());
             return;
         }
-        log.info("Pixel recibido canvas={} user={} x={} y={} color={}",
+        log.debug("Pixel recibido canvas={} user={} x={} y={} color={}",
                 canvasId, command.userId(), command.x(), command.y(), command.color());
         try {
             canvasStateService.paintPixelWithCooldown(canvasId, command);
             messagingTemplate.convertAndSend("/topic/canvas/" + canvasId,
                     new PixelDTO(command.x(), command.y(), command.color()));
-            log.info("Pixel confirmado canvas={} user={} x={} y={} color={}",
+            log.debug("Pixel confirmado canvas={} user={} x={} y={} color={}",
                     canvasId, command.userId(), command.x(), command.y(), command.color());
         } catch (IllegalArgumentException | CooldownActiveException e) {
             log.warn("Pixel rechazado canvas={} user={} x={} y={} color={} reason={}",

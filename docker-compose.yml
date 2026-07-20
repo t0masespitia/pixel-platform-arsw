@@ -38,7 +38,7 @@ services:
     build:
       context: ./auth-service
       dockerfile: Dockerfile
-    mem_limit: 320m
+    mem_limit: 380m
     restart: unless-stopped
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_db
