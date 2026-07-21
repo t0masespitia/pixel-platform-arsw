@@ -401,6 +401,7 @@ export default function LobbyPage() {
                         </span>
                       </div>
                     </div>
+                    {!canvas.isDefaultTemplate && (
                     <div className="mt-2 pt-2 border-t border-border flex justify-end">
                       <button
                         onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(canvas.id); setDeleteError('') }}
@@ -410,6 +411,7 @@ export default function LobbyPage() {
                         Eliminar lienzo
                       </button>
                     </div>
+                    )}
                     {confirmDeleteId === canvas.id && (
                       <div className="mt-2 bg-destructive/10 border border-destructive p-3 space-y-2">
                         <p className="font-body text-lg text-foreground">

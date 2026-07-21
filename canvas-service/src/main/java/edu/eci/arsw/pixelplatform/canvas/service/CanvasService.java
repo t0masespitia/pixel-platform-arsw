@@ -92,8 +92,10 @@ public class CanvasService {
         if (id.equals(CanvasConstants.GENERAL_CANVAS_ID)) {
             throw new IllegalArgumentException("No se puede eliminar el lienzo general");
         }
-        if (!canvasRepository.existsById(id)) {
-            throw new IllegalArgumentException("Lienzo no encontrado");
+        Canvas canvas = canvasRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Lienzo no encontrado"));
+        if (canvas.isDefaultTemplate()) {
+            throw new IllegalArgumentException("No se puede eliminar un lienzo predeterminado");
         }
         canvasMembershipRepository.deleteAll(canvasMembershipRepository.findByCanvasId(id));
         canvasInvitationRepository.deleteAll(canvasInvitationRepository.findByCanvasId(id));
@@ -108,6 +110,7 @@ public class CanvasService {
                 canvas.getWidth(),
                 canvas.getHeight(),
                 canvas.isPrivate(),
+                canvas.isDefaultTemplate(),
                 canvas.getCreatedAt()
         );
     }

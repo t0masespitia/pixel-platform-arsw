@@ -64,6 +64,10 @@ public class AiTemplateController {
             if (!requesterId.equals(canvas.ownerId())) {
                 throw new IllegalArgumentException("Solo el dueno del lienzo puede generar una plantilla");
             }
+            if (canvas.isDefaultTemplate()) {
+                throw new IllegalArgumentException(
+                        "Este lienzo ya tiene una imagen predeterminada, no admite generar otra");
+            }
             BufferedImage source;
             try {
                 source = ImageIO.read(file.getInputStream());

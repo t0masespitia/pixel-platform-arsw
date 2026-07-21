@@ -205,6 +205,7 @@ function CanvasEditor({ canvas, id, userId, token }) {
       {/* Left: owner tools (invitar/gestionar miembros + plantilla desde imagen) */}
       {isOwner && (
         <div className="w-full lg:w-64 flex-shrink-0 space-y-3">
+          {!canvas.isDefaultTemplate && (
           <div>
             <button
               onClick={() => setAiPanelOpen((o) => !o)}
@@ -226,6 +227,7 @@ function CanvasEditor({ canvas, id, userId, token }) {
               </div>
             )}
           </div>
+          )}
           <div>
             <button
               onClick={() => setMembersOpen((o) => !o)}

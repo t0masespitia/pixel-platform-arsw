@@ -2,9 +2,11 @@ package edu.eci.arsw.pixelplatform.canvas.controller;
 
 import edu.eci.arsw.pixelplatform.canvas.dto.CanvasResponse;
 import edu.eci.arsw.pixelplatform.canvas.dto.CreateCanvasRequest;
+import edu.eci.arsw.pixelplatform.canvas.dto.CreateDefaultCanvasesRequest;
 import edu.eci.arsw.pixelplatform.canvas.event.DomainEventPublisher;
 import edu.eci.arsw.pixelplatform.canvas.model.CanvasConstants;
 import edu.eci.arsw.pixelplatform.canvas.service.CanvasService;
+import edu.eci.arsw.pixelplatform.canvas.service.DefaultCanvasTemplateService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,12 +30,16 @@ import java.util.UUID;
 public class CanvasRegistryController {
 
     private final CanvasService canvasService;
+    private final DefaultCanvasTemplateService defaultCanvasTemplateService;
     private final Counter canvasesCreatedCounter;
     private final DomainEventPublisher domainEventPublisher;
 
-    public CanvasRegistryController(CanvasService canvasService, MeterRegistry meterRegistry,
+    public CanvasRegistryController(CanvasService canvasService,
+                                     DefaultCanvasTemplateService defaultCanvasTemplateService,
+                                     MeterRegistry meterRegistry,
                                      DomainEventPublisher domainEventPublisher) {
         this.canvasService = canvasService;
+        this.defaultCanvasTemplateService = defaultCanvasTemplateService;
         this.canvasesCreatedCounter = Counter.builder("pixelplatform.canvases.new")
                 .description("Total de lienzos creados")
                 .register(meterRegistry);
@@ -51,6 +57,18 @@ public class CanvasRegistryController {
         CanvasResponse created = canvasService.createCanvas(request);
         canvasesCreatedCounter.increment();
         return ResponseEntity.status(201).body(created);
+    }
+
+    @PostMapping("/default-templates")
+    public ResponseEntity<?> createDefaultCanvases(@Valid @RequestBody CreateDefaultCanvasesRequest request,
+                                                   HttpServletRequest httpRequest) {
+        String verifiedUserId = (String) httpRequest.getAttribute("verifiedUserId");
+        if (!verifiedUserId.equals(request.ownerId())) {
+            return ResponseEntity.status(403).body(Map.of("error",
+                    "El usuario del token no coincide con el userId de la peticion"));
+        }
+        List<CanvasResponse> creados = defaultCanvasTemplateService.createDefaultCanvasesForUser(request.ownerId());
+        return ResponseEntity.status(201).body(creados);
     }
 
     @GetMapping("/general")

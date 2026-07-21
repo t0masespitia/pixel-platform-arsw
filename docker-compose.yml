@@ -50,6 +50,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev-secret-key-pixelplatform-auth-service-arsw-2026}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_APP_PASSWORD: ${MAIL_APP_PASSWORD:-}
+      CANVAS_SERVICE_BASE_URL: http://canvas-service:8082
     ports:
       - "8081:8081"
     depends_on:

@@ -40,5 +40,8 @@ public class Canvas {
     private boolean isPrivate;
 
     @Column(nullable = false)
+    private boolean isDefaultTemplate;
+
+    @Column(nullable = false)
     private Instant createdAt;
 }

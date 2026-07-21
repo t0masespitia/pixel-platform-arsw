@@ -12,10 +12,13 @@ import edu.eci.arsw.pixelplatform.auth.dto.UserLookupResponse;
 import edu.eci.arsw.pixelplatform.auth.dto.UserProfileResponse;
 import edu.eci.arsw.pixelplatform.auth.dto.UserSummaryResponse;
 import edu.eci.arsw.pixelplatform.auth.dto.VerifyEmailRequest;
+import edu.eci.arsw.pixelplatform.auth.client.CanvasServiceClient;
 import edu.eci.arsw.pixelplatform.auth.event.DomainEventPublisher;
 import edu.eci.arsw.pixelplatform.auth.exception.EmailNotVerifiedException;
 import edu.eci.arsw.pixelplatform.auth.model.User;
 import edu.eci.arsw.pixelplatform.auth.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -32,6 +35,8 @@ import java.util.Map;
 @Service
 public class AuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+
     @Value("${jwt.expiration-ms}")
     private long expirationMs;
 
@@ -40,18 +45,21 @@ public class AuthService {
     private final DomainEventPublisher domainEventPublisher;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final CanvasServiceClient canvasServiceClient;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(UserRepository userRepository,
                        JwtService jwtService,
                        DomainEventPublisher domainEventPublisher,
                        PasswordEncoder passwordEncoder,
-                       EmailService emailService) {
+                       EmailService emailService,
+                       CanvasServiceClient canvasServiceClient) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.domainEventPublisher = domainEventPublisher;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+        this.canvasServiceClient = canvasServiceClient;
     }
 
     public RegisterResponse register(RegisterRequest request) {
@@ -132,6 +140,14 @@ public class AuthService {
         userRepository.save(user);
 
         String token = jwtService.generateToken(user);
+
+        try {
+            canvasServiceClient.createDefaultCanvases(String.valueOf(user.getId()), "Bearer " + token);
+        } catch (Exception e) {
+            log.warn("No se pudieron crear los lienzos predeterminados para el usuario {}: {}",
+                    user.getId(), e.getMessage());
+        }
+
         return new AuthResponse(token, user.getUsername(), user.getEmail(), expirationMs);
     }
 

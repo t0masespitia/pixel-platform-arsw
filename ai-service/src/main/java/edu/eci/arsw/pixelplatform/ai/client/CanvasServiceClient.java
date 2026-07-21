@@ -23,7 +23,8 @@ public class CanvasServiceClient {
 
     private static final Logger log = LoggerFactory.getLogger(CanvasServiceClient.class);
 
-    public record CanvasInfo(UUID id, String name, String ownerId, int width, int height, boolean isPrivate) {}
+    public record CanvasInfo(UUID id, String name, String ownerId, int width, int height,
+                              boolean isPrivate, boolean isDefaultTemplate) {}
 
     private final RestTemplate restTemplate;
     private final String canvasServiceBaseUrl;

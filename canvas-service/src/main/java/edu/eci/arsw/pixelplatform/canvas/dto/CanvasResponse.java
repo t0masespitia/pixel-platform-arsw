@@ -10,5 +10,6 @@ public record CanvasResponse(
         int width,
         int height,
         boolean isPrivate,
+        boolean isDefaultTemplate,
         Instant createdAt
 ) {}
