@@ -28,13 +28,9 @@ import java.util.stream.Collectors;
 /**
  * Crea los 4 lienzos privados predeterminados que recibe cada usuario al
  * verificar su correo. Cada uno se pinta con una de las 4 imagenes de
- * classpath:default-templates/template-{1..4}.png usando el mismo algoritmo
- * de cuantizacion + dithering Floyd-Steinberg que ai-service usa en modo
- * COLOR (ver ai-service ImageProcessingService.generateDitheredTemplate),
- * copiado aca para no depender de una llamada HTTP a ai-service durante la
- * verificacion de correo. Si se cambia la paleta alla o en
- * frontend/src/components/ColorPalette.jsx, hay que replicar el cambio aca
- * tambien.
+ * classpath:default-templates/template-{1..4}.png usando cuantizacion a escala
+ * de grises + dithering Floyd-Steinberg, copiado aca para no depender de una
+ * llamada HTTP a ai-service durante la verificacion de correo.
  *
  * Nota: el metodo que crea cada lienzo individual NO usa @Transactional a
  * proposito. Se invoca desde dentro de esta misma clase (self-invocation),
@@ -49,11 +45,18 @@ public class DefaultCanvasTemplateService {
     private static final Logger log = LoggerFactory.getLogger(DefaultCanvasTemplateService.class);
     private static final int TEMPLATE_COUNT = 4;
 
+    private static final String[] TEMPLATE_NAMES = {
+            "pinta a stitch",
+            "Pinta a pikachu",
+            "pinta a un perrito",
+            "pinta al pajaro carpintero"
+    };
+
     private static final int[][] PALETTE = {
-            {0x00, 0x00, 0x00}, {0xFF, 0xFF, 0xFF}, {0x80, 0x80, 0x80}, {0xC0, 0xC0, 0xC0},
-            {0xFF, 0x00, 0x00}, {0xFF, 0x88, 0x00}, {0xFF, 0xFF, 0x00}, {0x00, 0xCC, 0x00},
-            {0x00, 0xCC, 0xCC}, {0x00, 0x00, 0xFF}, {0x88, 0x00, 0xFF}, {0xEC, 0x48, 0x99},
-            {0x8B, 0x45, 0x13}, {0xFF, 0x69, 0xB4}, {0x00, 0x64, 0x00}, {0x00, 0x00, 0x80},
+            {0x00, 0x00, 0x00},
+            {0x80, 0x80, 0x80},
+            {0xC0, 0xC0, 0xC0},
+            {0xFF, 0xFF, 0xFF},
     };
 
     private final CanvasRepository canvasRepository;
@@ -101,7 +104,7 @@ public class DefaultCanvasTemplateService {
 
         Canvas canvas = new Canvas();
         canvas.setId(UUID.randomUUID());
-        canvas.setName("Lienzo predeterminado " + templateIndex);
+        canvas.setName(TEMPLATE_NAMES[templateIndex - 1]);
         canvas.setOwnerId(ownerId);
         canvas.setWidth(templateWidth);
         canvas.setHeight(templateHeight);

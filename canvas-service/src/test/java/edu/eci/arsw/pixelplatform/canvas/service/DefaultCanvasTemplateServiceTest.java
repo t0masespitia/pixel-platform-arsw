@@ -1,5 +1,6 @@
 package edu.eci.arsw.pixelplatform.canvas.service;
 
+import edu.eci.arsw.pixelplatform.canvas.dto.CanvasResponse;
 import edu.eci.arsw.pixelplatform.canvas.model.Canvas;
 import edu.eci.arsw.pixelplatform.canvas.model.CanvasMembership;
 import edu.eci.arsw.pixelplatform.canvas.repository.CanvasMembershipRepository;
@@ -56,6 +57,9 @@ class DefaultCanvasTemplateServiceTest {
         var creados = service.createDefaultCanvasesForUser("owner-1");
 
         assertThat(creados).hasSize(4);
+        assertThat(creados).extracting(CanvasResponse::name)
+                .containsExactly("pinta a stitch", "Pinta a pikachu", "pinta a un perrito",
+                        "pinta al pajaro carpintero");
 
         ArgumentCaptor<Canvas> canvasCaptor = ArgumentCaptor.forClass(Canvas.class);
         verify(canvasRepository, org.mockito.Mockito.times(4)).save(canvasCaptor.capture());
@@ -74,7 +78,10 @@ class DefaultCanvasTemplateServiceTest {
         ArgumentCaptor<Map<String, String>> pixelsCaptor = ArgumentCaptor.forClass(Map.class);
         verify(canvasStateService, org.mockito.Mockito.times(4))
                 .bulkSetPixels(any(UUID.class), eq("owner-1"), pixelsCaptor.capture());
-        assertThat(pixelsCaptor.getAllValues()).allSatisfy(pixels -> assertThat(pixels).isNotEmpty());
+        assertThat(pixelsCaptor.getAllValues()).allSatisfy(pixels -> {
+            assertThat(pixels).isNotEmpty();
+            assertThat(pixels.values()).allSatisfy(DefaultCanvasTemplateServiceTest::assertGrayscaleColor);
+        });
     }
 
     @Test
@@ -117,7 +124,7 @@ class DefaultCanvasTemplateServiceTest {
     private Canvas existingDefaultCanvas(String ownerId, int index) {
         return Canvas.builder()
                 .id(UUID.randomUUID())
-                .name("Lienzo predeterminado " + index)
+                .name("Plantilla existente " + index)
                 .ownerId(ownerId)
                 .width(64)
                 .height(64)
@@ -125,5 +132,11 @@ class DefaultCanvasTemplateServiceTest {
                 .isDefaultTemplate(true)
                 .createdAt(Instant.now())
                 .build();
+    }
+
+    private static void assertGrayscaleColor(String color) {
+        assertThat(color).matches("#[0-9A-F]{6}");
+        assertThat(color.substring(1, 3)).isEqualTo(color.substring(3, 5));
+        assertThat(color.substring(3, 5)).isEqualTo(color.substring(5, 7));
     }
 }
