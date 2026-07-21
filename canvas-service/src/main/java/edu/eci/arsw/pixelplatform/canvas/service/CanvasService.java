@@ -23,13 +23,16 @@ public class CanvasService {
     private final CanvasRepository canvasRepository;
     private final CanvasMembershipRepository canvasMembershipRepository;
     private final CanvasInvitationRepository canvasInvitationRepository;
+    private final CanvasStateService canvasStateService;
 
     public CanvasService(CanvasRepository canvasRepository,
                          CanvasMembershipRepository canvasMembershipRepository,
-                         CanvasInvitationRepository canvasInvitationRepository) {
+                         CanvasInvitationRepository canvasInvitationRepository,
+                         CanvasStateService canvasStateService) {
         this.canvasRepository = canvasRepository;
         this.canvasMembershipRepository = canvasMembershipRepository;
         this.canvasInvitationRepository = canvasInvitationRepository;
+        this.canvasStateService = canvasStateService;
     }
 
     public CanvasResponse createCanvas(CreateCanvasRequest request) {
@@ -100,6 +103,7 @@ public class CanvasService {
         canvasMembershipRepository.deleteAll(canvasMembershipRepository.findByCanvasId(id));
         canvasInvitationRepository.deleteAll(canvasInvitationRepository.findByCanvasId(id));
         canvasRepository.deleteById(id);
+        canvasStateService.evictFromCache(id);
     }
 
     private CanvasResponse toResponse(Canvas canvas) {

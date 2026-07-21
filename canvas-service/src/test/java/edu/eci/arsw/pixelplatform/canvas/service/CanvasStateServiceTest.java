@@ -192,6 +192,16 @@ class CanvasStateServiceTest {
     }
 
     @Test
+    void dosPinturasSobreElMismoLienzo_soloDebeConsultarPostgresUnaVez() {
+        when(redisTemplate.hasKey(anyString())).thenReturn(false);
+
+        service.paintPixelWithCooldown(TEST_CANVAS_ID, new PixelPaintCommand("usuario123", 1, 1, "#FFFFFF"));
+        service.paintPixelWithCooldown(TEST_CANVAS_ID, new PixelPaintCommand("usuario123", 2, 2, "#FFFFFF"));
+
+        verify(canvasRepository, times(1)).findById(TEST_CANVAS_ID);
+    }
+
+    @Test
     void pintarEnLienzoPrivadoSinMembresia_debeLanzarExcepcion() {
         UUID privateCanvasId = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
         Canvas privateCanvas = new Canvas();
