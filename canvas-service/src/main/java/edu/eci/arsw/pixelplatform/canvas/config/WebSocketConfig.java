@@ -58,6 +58,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registration.taskExecutor()
                 .corePoolSize(16)
                 .maxPoolSize(32)
-                .queueCapacity(10000);
+                .queueCapacity(1500);
     }
 }

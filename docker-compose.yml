@@ -69,7 +69,7 @@ services:
     build:
       context: ./canvas-service
       dockerfile: Dockerfile
-    mem_limit: 450m
+    mem_limit: 650m
     restart: unless-stopped
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/canvas_db
