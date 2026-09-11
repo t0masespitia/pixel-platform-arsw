@@ -81,8 +81,13 @@ public class CanvasRegistryController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getCanvas(@PathVariable UUID id) {
+    public ResponseEntity<?> getCanvas(@PathVariable UUID id, HttpServletRequest httpRequest) {
+        String verifiedUserId = (String) httpRequest.getAttribute("verifiedUserId");
         try {
+            if (!canvasService.hasAccess(id, verifiedUserId)) {
+                return ResponseEntity.status(403).body(Map.of("error",
+                        "No tienes acceso a este lienzo"));
+            }
             return ResponseEntity.ok(canvasService.getCanvas(id));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();

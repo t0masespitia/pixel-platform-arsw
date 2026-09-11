@@ -3,6 +3,7 @@ package edu.eci.arsw.pixelplatform.canvas.controller;
 import edu.eci.arsw.pixelplatform.canvas.dto.BulkPixelUpdateRequest;
 import edu.eci.arsw.pixelplatform.canvas.dto.CanvasStateDTO;
 import edu.eci.arsw.pixelplatform.canvas.dto.PixelDTO;
+import edu.eci.arsw.pixelplatform.canvas.service.CanvasService;
 import edu.eci.arsw.pixelplatform.canvas.service.CanvasStateService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -23,17 +24,26 @@ import java.util.UUID;
 public class CanvasController {
 
     private final CanvasStateService canvasStateService;
+    private final CanvasService canvasService;
     private final SimpMessagingTemplate messagingTemplate;
 
     public CanvasController(CanvasStateService canvasStateService,
+                            CanvasService canvasService,
                             SimpMessagingTemplate messagingTemplate) {
         this.canvasStateService = canvasStateService;
+        this.canvasService = canvasService;
         this.messagingTemplate = messagingTemplate;
     }
 
     @GetMapping("/{canvasId}/state")
-    public ResponseEntity<?> getCanvasState(@PathVariable UUID canvasId) {
+    public ResponseEntity<?> getCanvasState(@PathVariable UUID canvasId,
+                                             HttpServletRequest httpRequest) {
+        String verifiedUserId = (String) httpRequest.getAttribute("verifiedUserId");
         try {
+            if (!canvasService.hasAccess(canvasId, verifiedUserId)) {
+                return ResponseEntity.status(403).body(Map.of("error",
+                        "No tienes acceso a este lienzo"));
+            }
             return ResponseEntity.ok(canvasStateService.getCanvasState(canvasId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -42,8 +52,14 @@ public class CanvasController {
 
     @PostMapping("/{canvasId}/pixel")
     public ResponseEntity<?> paintPixel(@PathVariable UUID canvasId,
-                                         @Valid @RequestBody PixelDTO pixel) {
+                                         @Valid @RequestBody PixelDTO pixel,
+                                         HttpServletRequest httpRequest) {
+        String verifiedUserId = (String) httpRequest.getAttribute("verifiedUserId");
         try {
+            if (!canvasService.hasAccess(canvasId, verifiedUserId)) {
+                return ResponseEntity.status(403).body(Map.of("error",
+                        "No tienes acceso a este lienzo"));
+            }
             canvasStateService.paintPixel(canvasId, pixel);
             return ResponseEntity.ok(Map.of("status", "ok"));
         } catch (IllegalArgumentException e) {

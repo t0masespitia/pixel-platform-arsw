@@ -80,7 +80,12 @@ public class AuthController {
     }
 
     @GetMapping("/users/lookup")
-    public ResponseEntity<?> lookupByEmail(@RequestParam String email) {
+    public ResponseEntity<?> lookupByEmail(@RequestParam String email,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ") ||
+                !jwtService.isTokenValid(authHeader.substring(7))) {
+            return ResponseEntity.status(401).body(Map.of("error", "Token invalido o expirado"));
+        }
         try {
             return ResponseEntity.ok(authService.lookupByEmail(email));
         } catch (IllegalArgumentException e) {

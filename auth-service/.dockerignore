@@ -1,0 +1,12 @@
+# Excluir archivos de configuración local que pueden contener secretos.
+# Estos archivos están en .gitignore pero .gitignore no aplica al contexto Docker.
+src/main/resources/application-dev-local.properties
+src/main/resources/application-prod.properties
+.env
+
+# Excluir artefactos de compilación previos (el builder compila dentro de Docker)
+target/
+
+# Logs y uploads generados en runtime
+logs/
+uploads/

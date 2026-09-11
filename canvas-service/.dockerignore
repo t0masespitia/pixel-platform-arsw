@@ -1,0 +1,5 @@
+src/main/resources/application-dev-local.properties
+src/main/resources/application-prod.properties
+.env
+target/
+logs/

@@ -16,7 +16,7 @@ import java.util.Date;
  */
 public final class TestJwtUtil {
 
-    private static final String SECRET = "dev-secret-key-pixelplatform-auth-service-arsw-2026";
+    private static final String SECRET = "pixel-platform-test-only-jwt-secret-for-automated-tests";
 
     private TestJwtUtil() {
     }

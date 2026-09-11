@@ -12,14 +12,15 @@ import java.nio.charset.StandardCharsets;
 @Component
 public class JwtVerifier {
 
-    private final String secret;
+    private final SecretKey signingKey;
 
     public JwtVerifier(@Value("${jwt.secret}") String secret) {
-        this.secret = secret;
-    }
-
-    private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    "jwt.secret must not be blank — set the JWT_SECRET environment variable");
+        }
+        // Keys.hmacShaKeyFor lanza WeakKeyException si el material es < 256 bits
+        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String verifyAndExtractUserId(String bearerHeaderValue) {
@@ -29,7 +30,7 @@ public class JwtVerifier {
         String token = bearerHeaderValue.substring(7);
         try {
             var claims = Jwts.parser()
-                    .verifyWith(getSigningKey())
+                    .verifyWith(signingKey)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();

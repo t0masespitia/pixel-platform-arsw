@@ -45,7 +45,12 @@ public class PixelLoadTest {
         int width             = Integer.parseInt(arg(args, 4, "100"));
         int height            = Integer.parseInt(arg(args, 5, "200"));
         long cooldownMillis   = Long.parseLong(arg(args, 6, "500"));
-        String jwtSecret      = arg(args, 7, "dev-secret-key-pixelplatform-auth-service-arsw-2026");
+        String jwtSecret      = arg(args, 7, null);
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            System.err.println("Error: se requiere el argumento jwtSecret (posicion 7).");
+            System.err.println("Uso: java -jar load-test.jar [baseUrl] [canvasId] [users] [durationSeconds] [width] [height] [cooldownMillis] <jwtSecret>");
+            System.exit(1);
+        }
         SecretKey signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
 
         System.out.printf("Prueba de carga PixelPlatform: %d usuarios, %ds, canvas=%s, %s%n",

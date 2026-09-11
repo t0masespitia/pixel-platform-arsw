@@ -5,7 +5,3 @@
 # Deben coincidir con DB_USER / DB_PASSWORD del postgres local.
 spring.datasource.username=pixel_user
 spring.datasource.password=<contrasena-local-de-desarrollo>
-
-# Credenciales de Gmail para envio de correos
-spring.mail.username=tu_correo@gmail.com
-spring.mail.password=tu_app_password_de_16_caracteres

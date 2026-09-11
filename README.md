@@ -85,16 +85,18 @@ docker compose up --build
 
 ### Variables de entorno para despliegue real
 
-Por defecto todo corre apuntando a `http://localhost`. Para desplegar en un
-dominio o IP publica, crear un archivo `.env` en la raiz (ya esta en
-`.gitignore`, nunca se sube) con:
+`JWT_SECRET` es **obligatorio** — los servicios fallan al arrancar si no está configurado.
+Copiar `.env.example` como `.env` (ya está en `.gitignore`) y completar los valores:
 
+```bash
+cp .env.example .env
+# Generar un secreto aleatorio (requiere openssl):
+openssl rand -hex 32
+# Pegar el resultado como valor de JWT_SECRET en .env
 ```
-PUBLIC_ORIGIN=http://tu-dominio-o-ip
-JWT_SECRET=un-secreto-largo-y-real-de-produccion
-MAIL_USERNAME=tu-correo@gmail.com
-MAIL_APP_PASSWORD=tu-app-password-de-gmail
-```
+
+El archivo `.env` nunca debe subirse al repositorio. El secreto debe tener al menos
+32 bytes de material aleatorio (256 bits); el servicio lo valida al arrancar.
 
 ---
 

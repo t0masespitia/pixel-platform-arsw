@@ -14,18 +14,22 @@ cd load-test
 ```
 
 ## Ejecutar
+
+El argumento `jwtSecret` es **obligatorio** — la herramienta falla con un mensaje claro si no se provee.
+Usar el mismo valor configurado en `JWT_SECRET` para el entorno que se está midiendo.
+
 ```
-java -jar target/load-test.jar [baseUrl] [canvasId] [users] [durationSeconds] [width] [height] [cooldownMillis] [jwtSecret]
+java -jar target/load-test.jar [baseUrl] [canvasId] [users] [durationSeconds] [width] [height] [cooldownMillis] <jwtSecret>
 ```
 
-Ejemplo con los valores por defecto (20 usuarios, 30 segundos, lienzo General):
+Ejemplo con 20 usuarios durante 30 segundos contra el entorno local:
 ```
-java -jar target/load-test.jar
+java -jar target/load-test.jar http://localhost:8082 00000000-0000-0000-0000-000000000001 20 30 100 200 500 "$(grep JWT_SECRET .env | cut -d= -f2)"
 ```
 
 Ejemplo con 100 usuarios durante 60 segundos:
 ```
-java -jar target/load-test.jar http://localhost:8082 00000000-0000-0000-0000-000000000001 100 60
+java -jar target/load-test.jar http://localhost:8082 00000000-0000-0000-0000-000000000001 100 60 100 200 500 <jwt-secret>
 ```
 
 ## Cómo leer el reporte
